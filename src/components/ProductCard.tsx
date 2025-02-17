@@ -10,12 +10,14 @@ import {
 } from "@/components/ui/card";
 import { Product } from "@/data/products";
 import { useNavigate } from "react-router-dom";
+import { ShoppingCart } from "lucide-react";
 
 interface ProductCardProps {
   product: Product;
+  onAddToCart: (product: Product) => void;
 }
 
-const ProductCard = ({ product }: ProductCardProps) => {
+const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
   const navigate = useNavigate();
 
   return (
@@ -36,12 +38,19 @@ const ProductCard = ({ product }: ProductCardProps) => {
           KShs {product.price.toLocaleString()}
         </p>
       </CardContent>
-      <CardFooter className="p-6 pt-0">
+      <CardFooter className="flex gap-2 p-6 pt-0">
         <Button 
-          className="w-full bg-sage-600 hover:bg-sage-700"
+          className="flex-1 bg-sage-600 hover:bg-sage-700"
           onClick={() => navigate(`/products/${product.id}`)}
         >
           View Details
+        </Button>
+        <Button 
+          variant="outline"
+          className="flex items-center gap-2"
+          onClick={() => onAddToCart(product)}
+        >
+          <ShoppingCart className="h-4 w-4" />
         </Button>
       </CardFooter>
     </Card>

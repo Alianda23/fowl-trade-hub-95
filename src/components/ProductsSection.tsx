@@ -4,12 +4,22 @@ import { Button } from "@/components/ui/button";
 import { products, categories } from "@/data/products";
 import ProductCard from "./ProductCard";
 
-const ProductsSection = () => {
+interface ProductsSectionProps {
+  searchQuery: string;
+  onAddToCart: (product: any) => void;
+}
+
+const ProductsSection = ({ searchQuery, onAddToCart }: ProductsSectionProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  const filteredProducts = selectedCategory
-    ? products.filter((product) => product.category === selectedCategory)
-    : products;
+  const filteredProducts = products
+    .filter((product) => 
+      (selectedCategory ? product.category === selectedCategory : true) &&
+      (searchQuery
+        ? product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          product.description.toLowerCase().includes(searchQuery.toLowerCase())
+        : true)
+    );
 
   return (
     <section className="container py-16">
@@ -25,7 +35,7 @@ const ProductsSection = () => {
         <Button
           variant={selectedCategory === null ? "default" : "outline"}
           onClick={() => setSelectedCategory(null)}
-          className="bg-sage-600 hover:bg-sage-700"
+          className={selectedCategory === null ? "bg-sage-600 hover:bg-sage-700" : ""}
         >
           All
         </Button>
@@ -44,9 +54,15 @@ const ProductsSection = () => {
       {/* Products grid */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {filteredProducts.map((product) => (
-          <ProductCard key={product.id} product={product} />
+          <ProductCard key={product.id} product={product} onAddToCart={onAddToCart} />
         ))}
       </div>
+
+      {filteredProducts.length === 0 && (
+        <div className="mt-8 text-center text-gray-500">
+          No products found matching your search criteria.
+        </div>
+      )}
     </section>
   );
 };

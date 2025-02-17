@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState } from "react";
+import ProductsSection from "@/components/ProductsSection";
 
 const categories = [
   {
@@ -27,8 +27,6 @@ const categories = [
 ];
 
 const Index = () => {
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -94,6 +92,9 @@ const Index = () => {
           ))}
         </div>
       </section>
+
+      {/* Products Section */}
+      <ProductsSection />
 
       {/* Features Section */}
       <section className="bg-sage-50 py-16">

@@ -6,6 +6,7 @@ export interface Product {
   price: number;
   description: string;
   image: string;
+  stock: number;  // Added stock property
 }
 
 export const products: Product[] = [
@@ -16,7 +17,8 @@ export const products: Product[] = [
     category: "Live Poultry",
     price: 100,
     description: "Healthy day-old chicks for starting your poultry farm",
-    image: "https://images.unsplash.com/photo-1517022812141-23620dba5c23"
+    image: "https://images.unsplash.com/photo-1517022812141-23620dba5c23",
+    stock: 50
   },
   {
     id: "broilers",
@@ -24,7 +26,8 @@ export const products: Product[] = [
     category: "Live Poultry",
     price: 450,
     description: "Ready for meat production, 6-8 weeks old",
-    image: "https://images.unsplash.com/photo-1535268647677-300dbf3d78d1"
+    image: "https://images.unsplash.com/photo-1535268647677-300dbf3d78d1",
+    stock: 30
   },
   // Poultry Products
   {
@@ -33,7 +36,8 @@ export const products: Product[] = [
     category: "Poultry Products",
     price: 360,
     description: "Fresh farm eggs, tray of 30",
-    image: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9"
+    image: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9",
+    stock: 100
   },
   // Feeds & Supplements
   {
@@ -42,7 +46,8 @@ export const products: Product[] = [
     category: "Feeds & Supplements",
     price: 2500,
     description: "High-quality starter feed for chicks, 50kg bag",
-    image: "https://images.unsplash.com/photo-1466721591366-2d5fba72006d"
+    image: "https://images.unsplash.com/photo-1466721591366-2d5fba72006d",
+    stock: 25
   }
 ];
 

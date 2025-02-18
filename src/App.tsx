@@ -3,6 +3,9 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SellerDashboard from "./pages/SellerDashboard";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import ProductDetails from "./pages/ProductDetails";
 
 function App() {
   return (
@@ -10,6 +13,9 @@ function App() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/seller" element={<SellerDashboard />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/products/:productId" element={<ProductDetails />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>

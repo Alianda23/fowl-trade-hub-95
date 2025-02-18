@@ -163,28 +163,13 @@ const Index = () => {
                 </span>
               )}
             </Button>
-            <Button
-              variant="ghost"
-              className="gap-2"
-              onClick={() => {
-                toast({
-                  title: "Login Required",
-                  description: "This is a demo version. Authentication requires backend integration.",
-                });
-              }}
-            >
-              <LogIn className="h-5 w-5" />
-              Login
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                toast({
-                  title: "Profile",
-                  description: "This is a demo version. User profiles require backend integration.",
-                });
-              }}
-            >
+            <Link to="/login">
+              <Button variant="ghost" className="gap-2">
+                <LogIn className="h-5 w-5" />
+                Login
+              </Button>
+            </Link>
+            <Button variant="ghost">
               <User className="h-5 w-5" />
             </Button>
           </div>
@@ -302,13 +287,15 @@ const Index = () => {
           <p className="mb-8 text-sage-100">
             Join our platform today and connect with top poultry farmers and buyers
           </p>
-          <Button
-            variant="default"
-            size="lg"
-            className="bg-white text-sage-900 hover:bg-sage-100"
-          >
-            Create Account
-          </Button>
+          <Link to="/signup">
+            <Button
+              variant="default"
+              size="lg"
+              className="bg-white text-sage-900 hover:bg-sage-100"
+            >
+              Create Account
+            </Button>
+          </Link>
         </div>
       </section>
     </div>

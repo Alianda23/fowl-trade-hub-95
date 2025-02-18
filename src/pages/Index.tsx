@@ -4,7 +4,8 @@ import ProductsSection from "@/components/ProductsSection";
 import { useState } from "react";
 import { Product } from "@/data/products";
 import { useToast } from "@/hooks/use-toast";
-import { Search, ShoppingCart } from "lucide-react";
+import { Search, ShoppingCart, User, LogIn } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const categories = [
   {
@@ -136,7 +137,7 @@ const Index = () => {
         )}
       </div>
 
-      {/* Header with Search and Cart */}
+      {/* Header with Search, Cart, and Auth */}
       <div className="sticky top-0 z-40 bg-white shadow">
         <div className="container flex items-center justify-between py-4">
           <div className="relative flex w-full max-w-md items-center">
@@ -149,18 +150,44 @@ const Index = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button
-            variant="ghost"
-            className="relative"
-            onClick={() => setShowCart(true)}
-          >
-            <ShoppingCart className="h-6 w-6" />
-            {cart.length > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-sage-600 text-xs text-white">
-                {cart.length}
-              </span>
-            )}
-          </Button>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              className="relative"
+              onClick={() => setShowCart(true)}
+            >
+              <ShoppingCart className="h-6 w-6" />
+              {cart.length > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-sage-600 text-xs text-white">
+                  {cart.length}
+                </span>
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              className="gap-2"
+              onClick={() => {
+                toast({
+                  title: "Login Required",
+                  description: "This is a demo version. Authentication requires backend integration.",
+                });
+              }}
+            >
+              <LogIn className="h-5 w-5" />
+              Login
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                toast({
+                  title: "Profile",
+                  description: "This is a demo version. User profiles require backend integration.",
+                });
+              }}
+            >
+              <User className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </div>
 

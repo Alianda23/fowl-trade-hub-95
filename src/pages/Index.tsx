@@ -184,7 +184,7 @@ const Index = () => {
             Welcome to
           </p>
           <h1 className="mb-6 animate-fadeIn text-center text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-            Poultry Marketing System
+            KukuHub
           </h1>
           <p className="mb-8 animate-fadeIn text-center text-lg text-sage-100 sm:text-xl">
             Connect with trusted poultry farmers and suppliers

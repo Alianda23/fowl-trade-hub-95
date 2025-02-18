@@ -22,7 +22,7 @@ const ProductsSection = ({ searchQuery, onAddToCart }: ProductsSectionProps) => 
     );
 
   return (
-    <section className="container py-16">
+    <section id="products-section" className="container py-16">
       <h2 className="mb-2 text-center text-sm font-medium uppercase tracking-wider text-sage-600">
         Our Products
       </h2>

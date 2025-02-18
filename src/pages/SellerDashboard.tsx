@@ -1,10 +1,9 @@
-
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useState } from "react";
 import { Product } from "@/data/products";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MessageSquare, User, LayoutDashboard, Package2, Settings, X, Pencil } from "lucide-react";
+import { Plus, MessageSquare, User, LayoutDashboard, Package2, Settings, X, Pencil, ShoppingCart } from "lucide-react";
 
 type ProductType = {
   name: string;
@@ -31,6 +30,7 @@ const SellerDashboard = () => {
   const sidebarItems = [
     { icon: <LayoutDashboard className="h-5 w-5" />, label: "Dashboard" },
     { icon: <Package2 className="h-5 w-5" />, label: "Products" },
+    { icon: <ShoppingCart className="h-5 w-5" />, label: "Orders" },
     { icon: <User className="h-5 w-5" />, label: "Profile" },
     { icon: <Settings className="h-5 w-5" />, label: "Settings" },
   ];

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Product } from "@/data/products";
 import { useToast } from "@/hooks/use-toast";
 import { Search, ShoppingCart, User, LogIn } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const categories = [
   {
@@ -39,6 +39,7 @@ const Index = () => {
   const [showCart, setShowCart] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const addToCart = (product: Product) => {
     setCart(prevCart => {
@@ -194,16 +195,24 @@ const Index = () => {
               variant="default"
               size="lg"
               className="bg-sage-600 text-white hover:bg-sage-700"
+              onClick={() => {
+                const productsSection = document.querySelector("#products-section");
+                if (productsSection) {
+                  productsSection.scrollIntoView({ behavior: "smooth" });
+                }
+              }}
             >
               Browse Products
             </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="border-2 border-white bg-transparent text-white hover:bg-white/10"
-            >
-              Become a Seller
-            </Button>
+            <Link to="/signup">
+              <Button
+                variant="outline"
+                size="lg"
+                className="border-2 border-white bg-transparent text-white hover:bg-white/10"
+              >
+                Become a Seller
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -241,7 +250,9 @@ const Index = () => {
       </section>
 
       {/* Products Section with search and cart functionality */}
-      <ProductsSection searchQuery={searchQuery} onAddToCart={addToCart} />
+      <div id="products-section">
+        <ProductsSection searchQuery={searchQuery} onAddToCart={addToCart} />
+      </div>
 
       {/* Features Section */}
       <section className="bg-sage-50 py-16">

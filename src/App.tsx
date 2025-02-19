@@ -7,6 +7,9 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ProductDetails from "./pages/ProductDetails";
 import AdminDashboard from "./pages/AdminDashboard";
+import SellerLogin from "./pages/seller/SellerLogin";
+import SellerSignup from "./pages/seller/SellerSignup";
+import SellerOrders from "./pages/seller/SellerOrders";
 
 function App() {
   return (
@@ -14,6 +17,9 @@ function App() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/seller" element={<SellerDashboard />} />
+        <Route path="/seller/login" element={<SellerLogin />} />
+        <Route path="/seller/signup" element={<SellerSignup />} />
+        <Route path="/seller/orders" element={<SellerOrders />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/products/:productId" element={<ProductDetails />} />

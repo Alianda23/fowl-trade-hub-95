@@ -204,7 +204,7 @@ const Index = () => {
             >
               Browse Products
             </Button>
-            <Link to="/signup">
+            <Link to="/seller/signup">
               <Button
                 variant="outline"
                 size="lg"

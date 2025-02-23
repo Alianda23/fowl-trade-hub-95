@@ -123,12 +123,10 @@ const Index = () => {
                 <span className="font-bold">KShs {cartTotal.toLocaleString()}</span>
               </div>
               <Button 
-                className="w-full bg-sage-600 hover:bg-sage-700"
+                className="w-full bg-sage-600 hover:bg-sage-700 text-white font-bold"
                 onClick={() => {
-                  toast({
-                    title: "Proceeding to checkout",
-                    description: "This is a demo version. Payment processing requires backend integration.",
-                  });
+                  setShowCart(false);
+                  navigate('/checkout');
                 }}
               >
                 Proceed to Checkout

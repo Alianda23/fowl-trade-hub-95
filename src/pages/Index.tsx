@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import ProductsSection from "@/components/ProductsSection";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Product } from "@/data/products";
 import { useToast } from "@/hooks/use-toast";
 import { Search, ShoppingCart, User, LogIn } from "lucide-react";
@@ -41,18 +41,38 @@ const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      setCart(JSON.parse(savedCart));
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      const updatedCart = JSON.parse(localStorage.getItem('cart') || '[]');
+      setCart(updatedCart);
+    };
+
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    return () => window.removeEventListener('cartUpdated', handleCartUpdate);
+  }, []);
+
   const addToCart = (product: Product) => {
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.id === product.id);
-      if (existingItem) {
-        return prevCart.map(item =>
-          item.id === product.id 
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      }
-      return [...prevCart, { ...product, quantity: 1 }];
+      const newCart = existingItem
+        ? prevCart.map(item =>
+            item.id === product.id 
+              ? { ...item, quantity: item.quantity + 1 }
+              : item
+          )
+        : [...prevCart, { ...product, quantity: 1 }];
+      
+      localStorage.setItem('cart', JSON.stringify(newCart));
+      return newCart;
     });
+    
     toast({
       title: "Added to cart",
       description: `${product.name} has been added to your cart`,
@@ -60,16 +80,22 @@ const Index = () => {
   };
 
   const removeFromCart = (productId: string) => {
-    setCart(prevCart => prevCart.filter(item => item.id !== productId));
+    setCart(prevCart => {
+      const newCart = prevCart.filter(item => item.id !== productId);
+      localStorage.setItem('cart', JSON.stringify(newCart));
+      return newCart;
+    });
   };
 
   const updateQuantity = (productId: string, quantity: number) => {
     if (quantity < 1) return;
-    setCart(prevCart =>
-      prevCart.map(item =>
+    setCart(prevCart => {
+      const newCart = prevCart.map(item =>
         item.id === productId ? { ...item, quantity } : item
-      )
-    );
+      );
+      localStorage.setItem('cart', JSON.stringify(newCart));
+      return newCart;
+    });
   };
 
   const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);

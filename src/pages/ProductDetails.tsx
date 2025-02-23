@@ -25,6 +25,34 @@ const ProductDetails = () => {
     );
   }
 
+  const handleAddToCart = () => {
+    // Get existing cart from localStorage
+    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    
+    // Check if product already exists in cart
+    const existingItemIndex = existingCart.findIndex((item: any) => item.id === product.id);
+    
+    if (existingItemIndex >= 0) {
+      // If product exists, increase quantity
+      existingCart[existingItemIndex].quantity += 1;
+    } else {
+      // If product doesn't exist, add it with quantity 1
+      existingCart.push({ ...product, quantity: 1 });
+    }
+    
+    // Save updated cart back to localStorage
+    localStorage.setItem('cart', JSON.stringify(existingCart));
+    
+    // Show success toast
+    toast({
+      title: "Added to cart",
+      description: `${product.name} has been added to your cart`,
+    });
+
+    // Trigger a custom event to notify Index.tsx to update cart
+    window.dispatchEvent(new CustomEvent('cartUpdated'));
+  };
+
   return (
     <div className="container min-h-screen py-8">
       <Button
@@ -61,12 +89,7 @@ const ProductDetails = () => {
           <Button
             size="lg"
             className="mt-6 w-full bg-sage-600 hover:bg-sage-700"
-            onClick={() => {
-              toast({
-                title: "Added to cart",
-                description: `${product.name} has been added to your cart`,
-              });
-            }}
+            onClick={handleAddToCart}
           >
             <ShoppingCart className="mr-2 h-5 w-5" />
             Add to Cart

@@ -101,7 +101,7 @@ const Index = () => {
   const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex flex-col bg-background">
       {/* Cart Sidebar */}
       <div className={`fixed right-0 top-0 z-50 h-full w-96 transform bg-white p-6 shadow-lg transition-transform duration-300 ${showCart ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="flex h-full flex-col">

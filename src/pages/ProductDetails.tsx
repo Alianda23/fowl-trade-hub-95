@@ -3,12 +3,16 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { products } from "@/data/products";
 import { useParams, useNavigate } from "react-router-dom";
-import { ShoppingCart, ArrowLeft } from "lucide-react";
+import { ShoppingCart, ArrowLeft, MessageSquare } from "lucide-react";
+import Copyright from "@/components/Copyright";
+import { useState } from "react";
+import MessageDialog from "@/components/MessageDialog";
 
 const ProductDetails = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
 
   const product = products.find(p => p.id === productId);
 
@@ -54,7 +58,7 @@ const ProductDetails = () => {
   };
 
   return (
-    <div className="container min-h-screen py-8">
+    <div className="container min-h-screen flex flex-col py-8">
       <Button
         variant="ghost"
         className="mb-6"
@@ -86,16 +90,35 @@ const ProductDetails = () => {
             <h2 className="mb-2 text-xl font-semibold">Category</h2>
             <p className="text-gray-600">{product.category}</p>
           </div>
-          <Button
-            size="lg"
-            className="mt-6 w-full bg-sage-600 hover:bg-sage-700"
-            onClick={handleAddToCart}
-          >
-            <ShoppingCart className="mr-2 h-5 w-5" />
-            Add to Cart
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="lg"
+              className="flex-1 bg-sage-600 hover:bg-sage-700"
+              onClick={handleAddToCart}
+            >
+              <ShoppingCart className="mr-2 h-5 w-5" />
+              Add to Cart
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => setShowMessageDialog(true)}
+            >
+              <MessageSquare className="mr-2 h-5 w-5" />
+              Message Seller
+            </Button>
+          </div>
         </div>
       </div>
+
+      <MessageDialog
+        open={showMessageDialog}
+        onOpenChange={setShowMessageDialog}
+        productName={product.name}
+        sellerId={product.id}
+      />
+
+      <Copyright />
     </div>
   );
 };

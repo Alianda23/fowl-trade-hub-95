@@ -11,6 +11,7 @@ import SellerLogin from "./pages/seller/SellerLogin";
 import SellerSignup from "./pages/seller/SellerSignup";
 import SellerOrders from "./pages/seller/SellerOrders";
 import Checkout from "./pages/Checkout";
+import AdminLogin from "./pages/admin/AdminLogin";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/products/:productId" element={<ProductDetails />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
@@ -33,3 +35,4 @@ function App() {
 }
 
 export default App;
+

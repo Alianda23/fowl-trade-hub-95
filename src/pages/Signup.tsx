@@ -1,11 +1,49 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 const Signup = () => {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
+
+  const validateForm = (name: string, email: string, password: string) => {
+    const newErrors = {
+      name: "",
+      email: "",
+      password: "",
+    };
+
+    if (!name) {
+      newErrors.name = "Full name is required";
+    } else if (name.length < 2) {
+      newErrors.name = "Name must be at least 2 characters";
+    }
+
+    if (!email) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = "Please enter a valid email";
+    }
+
+    if (!password) {
+      newErrors.password = "Password is required";
+    } else if (password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+
+    setErrors(newErrors);
+    return !newErrors.name && !newErrors.email && !newErrors.password;
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-sage-50 p-4">
@@ -15,48 +53,99 @@ const Signup = () => {
           <CardDescription>Sign up to start shopping</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={(e) => {
+          <form onSubmit={async (e) => {
             e.preventDefault();
-            toast({
-              title: "Signup not implemented",
-              description: "This is a demo version. Authentication requires backend integration.",
-            });
+            const formData = new FormData(e.currentTarget);
+            const name = formData.get("name") as string;
+            const email = formData.get("email") as string;
+            const password = formData.get("password") as string;
+
+            if (!validateForm(name, email, password)) {
+              return;
+            }
+
+            setIsLoading(true);
+            try {
+              // Simulate API call
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              toast({
+                title: "Signup not implemented",
+                description: "This is a demo version. Authentication requires backend integration.",
+              });
+            } finally {
+              setIsLoading(false);
+            }
           }} className="space-y-4">
             <div>
               <label htmlFor="name" className="mb-2 block text-sm font-medium">
                 Full Name
               </label>
-              <input
+              <Input
                 type="text"
                 id="name"
-                className="w-full rounded-md border px-3 py-2"
-                required
+                name="name"
+                placeholder="John Doe"
+                aria-describedby="name-error"
+                className={errors.name ? "border-red-500" : ""}
+                disabled={isLoading}
               />
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-500" id="name-error">
+                  {errors.name}
+                </p>
+              )}
             </div>
             <div>
               <label htmlFor="email" className="mb-2 block text-sm font-medium">
                 Email
               </label>
-              <input
+              <Input
                 type="email"
                 id="email"
-                className="w-full rounded-md border px-3 py-2"
-                required
+                name="email"
+                placeholder="you@example.com"
+                aria-describedby="email-error"
+                className={errors.email ? "border-red-500" : ""}
+                disabled={isLoading}
               />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-500" id="email-error">
+                  {errors.email}
+                </p>
+              )}
             </div>
             <div>
               <label htmlFor="password" className="mb-2 block text-sm font-medium">
                 Password
               </label>
-              <input
+              <Input
                 type="password"
                 id="password"
-                className="w-full rounded-md border px-3 py-2"
-                required
+                name="password"
+                placeholder="••••••••"
+                aria-describedby="password-error"
+                className={errors.password ? "border-red-500" : ""}
+                disabled={isLoading}
               />
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-500" id="password-error">
+                  {errors.password}
+                </p>
+              )}
             </div>
-            <Button type="submit" className="w-full bg-sage-600 hover:bg-sage-700">
-              Create Account
+            <Button 
+              type="submit" 
+              className="w-full bg-sage-600 hover:bg-sage-700"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                "Create Account"
+              )}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">

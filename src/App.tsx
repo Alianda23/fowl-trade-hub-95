@@ -1,6 +1,5 @@
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { SignIn, SignUp } from "@clerk/clerk-react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SellerDashboard from "./pages/SellerDashboard";
@@ -13,39 +12,22 @@ import SellerSignup from "./pages/seller/SellerSignup";
 import SellerOrders from "./pages/seller/SellerOrders";
 import Checkout from "./pages/Checkout";
 import AdminLogin from "./pages/admin/AdminLogin";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/seller" element={
-          <ProtectedRoute role="seller">
-            <SellerDashboard />
-          </ProtectedRoute>
-        } />
+        <Route path="/seller" element={<SellerDashboard />} />
         <Route path="/seller/login" element={<SellerLogin />} />
         <Route path="/seller/signup" element={<SellerSignup />} />
-        <Route path="/seller/orders" element={
-          <ProtectedRoute role="seller">
-            <SellerOrders />
-          </ProtectedRoute>
-        } />
+        <Route path="/seller/orders" element={<SellerOrders />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/products/:productId" element={<ProductDetails />} />
-        <Route path="/admin" element={
-          <ProtectedRoute role="admin">
-            <AdminDashboard />
-          </ProtectedRoute>
-        } />
+        <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/checkout" element={
-          <ProtectedRoute>
-            <Checkout />
-          </ProtectedRoute>
-        } />
+        <Route path="/checkout" element={<Checkout />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>

@@ -3,13 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 const Login = () => {
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({
     email: "",
@@ -60,23 +59,9 @@ const Login = () => {
             try {
               // Simulate API call
               await new Promise(resolve => setTimeout(resolve, 1000));
-              
-              // Store auth state in localStorage (temporary solution)
-              localStorage.setItem('isAuthenticated', 'true');
-              localStorage.setItem('userEmail', email);
-              
               toast({
-                title: "Login successful",
-                description: "Welcome back!",
-              });
-              
-              // Redirect to home page after successful login
-              navigate('/');
-            } catch (error) {
-              toast({
-                title: "Login failed",
-                description: "Please check your credentials and try again",
-                variant: "destructive",
+                title: "Login not implemented",
+                description: "This is a demo version. Authentication requires backend integration.",
               });
             } finally {
               setIsLoading(false);

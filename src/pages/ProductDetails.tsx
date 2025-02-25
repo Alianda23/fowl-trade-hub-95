@@ -33,6 +33,18 @@ const ProductDetails = () => {
     // Get existing cart from localStorage
     const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
     
+    // Check if user is authenticated
+    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+    if (!isAuthenticated) {
+      toast({
+        title: "Please login first",
+        description: "You need to be logged in to add items to cart",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+    
     // Check if product already exists in cart
     const existingItemIndex = existingCart.findIndex((item: any) => item.id === product.id);
     
@@ -59,9 +71,10 @@ const ProductDetails = () => {
 
   return (
     <div className="container min-h-screen flex flex-col py-8">
+      {/* Back button */}
       <Button
         variant="ghost"
-        className="mb-6"
+        className="mb-6 w-fit"
         onClick={() => navigate(-1)}
       >
         <ArrowLeft className="mr-2 h-4 w-4" />

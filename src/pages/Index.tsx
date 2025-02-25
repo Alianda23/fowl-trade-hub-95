@@ -40,6 +40,8 @@ const Index = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+  const userEmail = localStorage.getItem('userEmail');
 
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
@@ -58,7 +60,28 @@ const Index = () => {
     return () => window.removeEventListener('cartUpdated', handleCartUpdate);
   }, []);
 
+  const handleLogout = () => {
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('cart');
+    setCart([]);
+    toast({
+      title: "Logged out successfully",
+      description: "Come back soon!",
+    });
+  };
+
   const addToCart = (product: Product) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Please login first",
+        description: "You need to be logged in to add items to cart",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.id === product.id);
       const newCart = existingItem
@@ -77,6 +100,7 @@ const Index = () => {
       title: "Added to cart",
       description: `${product.name} has been added to your cart`,
     });
+    setShowCart(true);
   };
 
   const removeFromCart = (productId: string) => {
@@ -188,15 +212,21 @@ const Index = () => {
                 </span>
               )}
             </Button>
-            <Link to="/login">
-              <Button variant="ghost" className="gap-2">
-                <LogIn className="h-5 w-5" />
-                Login
-              </Button>
-            </Link>
-            <Button variant="ghost">
-              <User className="h-5 w-5" />
-            </Button>
+            {isAuthenticated ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">{userEmail}</span>
+                <Button variant="ghost" onClick={handleLogout}>
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <Link to="/login">
+                <Button variant="ghost" className="gap-2">
+                  <LogIn className="h-5 w-5" />
+                  Login
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </div>

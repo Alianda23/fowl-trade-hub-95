@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Search, ShoppingCart, LogIn, Package2 } from "lucide-react";
+import { Search, ShoppingCart, LogIn, Package2, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 interface HeaderProps {
@@ -38,28 +38,30 @@ const Header = ({
           />
         </div>
         <div className="flex items-center gap-4">
-          {isAuthenticated && (
+          <div className="flex items-center gap-2">
+            {isAuthenticated && (
+              <Button
+                variant="ghost"
+                className="gap-2"
+                onClick={() => navigate('/orders')}
+              >
+                <Package2 className="h-5 w-5" />
+                Orders
+              </Button>
+            )}
             <Button
               variant="ghost"
-              className="gap-2"
-              onClick={() => navigate('/orders')}
+              className="relative"
+              onClick={() => setShowCart(true)}
             >
-              <Package2 className="h-5 w-5" />
-              Orders
+              <ShoppingCart className="h-6 w-6" />
+              {cartItemsCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-sage-600 text-xs text-white">
+                  {cartItemsCount}
+                </span>
+              )}
             </Button>
-          )}
-          <Button
-            variant="ghost"
-            className="relative"
-            onClick={() => setShowCart(true)}
-          >
-            <ShoppingCart className="h-6 w-6" />
-            {cartItemsCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-sage-600 text-xs text-white">
-                {cartItemsCount}
-              </span>
-            )}
-          </Button>
+          </div>
           {isAuthenticated ? (
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">{userEmail}</span>

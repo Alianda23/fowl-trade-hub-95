@@ -1,6 +1,9 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const mockOrders = [
   { id: "ORD001", customer: "John Doe", total: 2500, status: "Completed", date: "2024-02-20" },
@@ -22,9 +25,17 @@ const getStatusColor = (status: string) => {
 };
 
 export default function Orders() {
+  const navigate = useNavigate();
+
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold mb-6">Orders Management</h1>
+      <div className="mb-6 flex items-center gap-4">
+        <Button variant="ghost" onClick={() => navigate("/admin")}>
+          <ArrowLeft className="h-5 w-5" />
+          Back
+        </Button>
+        <h1 className="text-2xl font-bold">Orders Management</h1>
+      </div>
       <Table>
         <TableHeader>
           <TableRow>

@@ -11,8 +11,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Truck, XCircle } from "lucide-react";
+import { Truck, XCircle, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface Order {
   id: string;
@@ -26,6 +27,7 @@ interface Order {
 
 const SellerOrders = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   // This would typically come from your backend
   const orders: Order[] = [
@@ -77,7 +79,13 @@ const SellerOrders = () => {
       
       <main className="flex-1 bg-gray-50">
         <div className="border-b bg-white p-6">
-          <h1 className="text-2xl font-bold">Orders</h1>
+          <div className="mb-4 flex items-center gap-4">
+            <Button variant="ghost" onClick={() => navigate("/seller")}>
+              <ArrowLeft className="h-5 w-5" />
+              Back
+            </Button>
+            <h1 className="text-2xl font-bold">Orders</h1>
+          </div>
           <p className="text-sm text-gray-600">Manage your customer orders</p>
         </div>
 
@@ -150,4 +158,3 @@ const SellerOrders = () => {
 };
 
 export default SellerOrders;
-

@@ -2,7 +2,8 @@
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Product } from "@/data/products";
-import { Plus, MessageSquare, User } from "lucide-react";
+import { Plus, MessageSquare, User, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import SellerSidebar from "@/components/seller/SellerSidebar";
 import ProductList from "@/components/seller/ProductList";
 import AddProductDialog from "@/components/seller/AddProductDialog";
@@ -12,6 +13,7 @@ const SellerDashboard = () => {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showMessages, setShowMessages] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const navigate = useNavigate();
 
   const stats = {
     totalProducts: products.length || 1,
@@ -27,7 +29,13 @@ const SellerDashboard = () => {
       <main className="flex-1 bg-gray-50">
         <div className="flex items-center justify-between border-b bg-white p-6">
           <div>
-            <h1 className="text-2xl font-bold">Seller Dashboard</h1>
+            <div className="mb-4 flex items-center gap-4">
+              <Button variant="ghost" onClick={() => navigate("/")}>
+                <ArrowLeft className="h-5 w-5" />
+                Back
+              </Button>
+              <h1 className="text-2xl font-bold">Seller Dashboard</h1>
+            </div>
             <p className="text-sm text-gray-600">Manage your poultry products and orders</p>
           </div>
           <div className="flex items-center gap-4">

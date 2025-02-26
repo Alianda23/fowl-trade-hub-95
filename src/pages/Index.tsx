@@ -1,7 +1,14 @@
 import { useState, useEffect } from "react";
 import { Product } from "@/data/products";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardTitle,
+} from "@/components/ui/card";
 import CartSidebar from "@/components/CartSidebar";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";

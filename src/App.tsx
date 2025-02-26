@@ -13,6 +13,9 @@ import SellerOrders from "./pages/seller/SellerOrders";
 import Checkout from "./pages/Checkout";
 import AdminLogin from "./pages/admin/AdminLogin";
 import Orders from "./pages/Orders";
+import AdminProducts from "./pages/admin/Products";
+import AdminUsers from "./pages/admin/Users";
+import AdminOrders from "./pages/admin/Orders";
 
 function App() {
   return (
@@ -29,6 +32,9 @@ function App() {
         <Route path="/products/:productId" element={<ProductDetails />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/products" element={<AdminProducts />} />
+        <Route path="/admin/users" element={<AdminUsers />} />
+        <Route path="/admin/orders" element={<AdminOrders />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

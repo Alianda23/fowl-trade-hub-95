@@ -1,36 +1,16 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  lastLogin: string;
-  role: "buyer" | "seller";
-}
-
-// Temporary mock data - replace with actual data later
-const mockUsers: User[] = [
-  {
-    id: "1",
-    name: "John Doe",
-    email: "john@example.com",
-    lastLogin: "2024-02-26 10:30 AM",
-    role: "buyer"
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    email: "jane@example.com",
-    lastLogin: "2024-02-26 09:15 AM",
-    role: "seller"
-  }
+const mockUsers = [
+  { id: 1, name: "John Doe", email: "john@example.com", role: "Buyer", lastLogin: "2024-02-20" },
+  { id: 2, name: "Jane Smith", email: "jane@example.com", role: "Seller", lastLogin: "2024-02-19" },
+  { id: 3, name: "Bob Wilson", email: "bob@example.com", role: "Buyer", lastLogin: "2024-02-18" },
 ];
 
 export default function Users() {
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold mb-6">System Users</h1>
+      <h1 className="text-2xl font-bold mb-6">User Management</h1>
       <Table>
         <TableHeader>
           <TableRow>

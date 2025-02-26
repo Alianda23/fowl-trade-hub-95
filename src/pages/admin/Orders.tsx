@@ -2,47 +2,22 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-interface Order {
-  id: string;
-  customerName: string;
-  productName: string;
-  date: string;
-  status: "pending" | "dispatched" | "cancelled" | "collected";
-  total: number;
-}
-
-// Temporary mock data - replace with actual data later
-const mockOrders: Order[] = [
-  {
-    id: "1",
-    customerName: "John Doe",
-    productName: "Day-old Chicks",
-    date: "2024-02-26",
-    status: "pending",
-    total: 1000
-  },
-  {
-    id: "2",
-    customerName: "Jane Smith",
-    productName: "Broilers",
-    date: "2024-02-25",
-    status: "dispatched",
-    total: 2250
-  }
+const mockOrders = [
+  { id: "ORD001", customer: "John Doe", total: 2500, status: "Completed", date: "2024-02-20" },
+  { id: "ORD002", customer: "Jane Smith", total: 1800, status: "Pending", date: "2024-02-19" },
+  { id: "ORD003", customer: "Bob Wilson", total: 3200, status: "Processing", date: "2024-02-18" },
 ];
 
-const getStatusColor = (status: Order["status"]) => {
-  switch (status) {
+const getStatusColor = (status: string) => {
+  switch (status.toLowerCase()) {
+    case "completed":
+      return "bg-green-500";
     case "pending":
-      return "secondary";
-    case "dispatched":
-      return "default";
-    case "cancelled":
-      return "destructive";
-    case "collected":
-      return "outline";
+      return "bg-yellow-500";
+    case "processing":
+      return "bg-blue-500";
     default:
-      return "default";
+      return "bg-gray-500";
   }
 };
 
@@ -55,25 +30,23 @@ export default function Orders() {
           <TableRow>
             <TableHead>Order ID</TableHead>
             <TableHead>Customer</TableHead>
-            <TableHead>Product</TableHead>
-            <TableHead>Date</TableHead>
             <TableHead>Total (KES)</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Date</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {mockOrders.map((order) => (
             <TableRow key={order.id}>
               <TableCell>{order.id}</TableCell>
-              <TableCell>{order.customerName}</TableCell>
-              <TableCell>{order.productName}</TableCell>
-              <TableCell>{order.date}</TableCell>
+              <TableCell>{order.customer}</TableCell>
               <TableCell>{order.total}</TableCell>
               <TableCell>
-                <Badge variant={getStatusColor(order.status)}>
-                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                <Badge className={`${getStatusColor(order.status)} text-white`}>
+                  {order.status}
                 </Badge>
               </TableCell>
+              <TableCell>{order.date}</TableCell>
             </TableRow>
           ))}
         </TableBody>

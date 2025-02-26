@@ -1,14 +1,15 @@
-
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { LayoutDashboard, Users, Package2, ShoppingCart, Plus, Pencil, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Product } from "@/data/products";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 const AdminDashboard = () => {
   const [showAdvertDialog, setShowAdvertDialog] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const stats = {
     totalUsers: 45,
@@ -18,10 +19,10 @@ const AdminDashboard = () => {
   };
 
   const sidebarItems = [
-    { icon: <LayoutDashboard className="h-5 w-5" />, label: "Dashboard" },
-    { icon: <Users className="h-5 w-5" />, label: "Users" },
-    { icon: <Package2 className="h-5 w-5" />, label: "Products" },
-    { icon: <ShoppingCart className="h-5 w-5" />, label: "Orders" },
+    { icon: <LayoutDashboard className="h-5 w-5" />, label: "Dashboard", path: "/admin" },
+    { icon: <Users className="h-5 w-5" />, label: "Users", path: "/admin/users" },
+    { icon: <Package2 className="h-5 w-5" />, label: "Products", path: "/admin/products" },
+    { icon: <ShoppingCart className="h-5 w-5" />, label: "Orders", path: "/admin/orders" },
   ];
 
   return (
@@ -34,6 +35,7 @@ const AdminDashboard = () => {
             <button
               key={item.label}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100"
+              onClick={() => navigate(item.path)}
             >
               {item.icon}
               {item.label}

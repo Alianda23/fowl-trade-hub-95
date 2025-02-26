@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
-import { Search, ShoppingCart, LogIn } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Search, ShoppingCart, LogIn, Package2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 interface HeaderProps {
   searchQuery: string;
@@ -22,6 +22,8 @@ const Header = ({
   userEmail,
   handleLogout,
 }: HeaderProps) => {
+  const navigate = useNavigate();
+  
   return (
     <div className="sticky top-0 z-40 bg-white shadow">
       <div className="container flex items-center justify-between py-4">
@@ -36,6 +38,16 @@ const Header = ({
           />
         </div>
         <div className="flex items-center gap-4">
+          {isAuthenticated && (
+            <Button
+              variant="ghost"
+              className="gap-2"
+              onClick={() => navigate('/orders')}
+            >
+              <Package2 className="h-5 w-5" />
+              Orders
+            </Button>
+          )}
           <Button
             variant="ghost"
             className="relative"
@@ -51,7 +63,13 @@ const Header = ({
           {isAuthenticated ? (
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">{userEmail}</span>
-              <Button variant="ghost" onClick={handleLogout}>
+              <Button 
+                variant="ghost" 
+                onClick={() => {
+                  handleLogout();
+                  navigate('/');
+                }}
+              >
                 Logout
               </Button>
             </div>

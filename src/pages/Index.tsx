@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Product } from "@/data/products";
 import { useToast } from "@/hooks/use-toast";
@@ -195,6 +196,15 @@ const Index = () => {
               Create Account
             </Button>
           </Link>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section className="bg-white py-8">
+        <div className="container text-center">
+          <h2 className="mb-4 text-2xl font-bold">Contact Us</h2>
+          <p className="text-gray-600">Email: kukuhub@gmail.com</p>
+          <p className="text-gray-600">Contact: 0712345678</p>
         </div>
       </section>
     </div>

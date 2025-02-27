@@ -12,7 +12,6 @@ import SellerSignup from "./pages/seller/SellerSignup";
 import SellerOrders from "./pages/seller/SellerOrders";
 import Checkout from "./pages/Checkout";
 import AdminLogin from "./pages/admin/AdminLogin";
-import Orders from "./pages/Orders";
 import AdminProducts from "./pages/admin/Products";
 import AdminUsers from "./pages/admin/Users";
 import AdminOrders from "./pages/admin/Orders";
@@ -28,7 +27,6 @@ function App() {
         <Route path="/seller/orders" element={<SellerOrders />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/orders" element={<Orders />} />
         <Route path="/products/:productId" element={<ProductDetails />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/login" element={<AdminLogin />} />

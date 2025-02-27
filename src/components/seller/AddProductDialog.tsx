@@ -8,6 +8,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { categories, productTypes } from "@/data/products";
+import { useState } from "react";
 
 interface AddProductDialogProps {
   open: boolean;
@@ -16,6 +18,7 @@ interface AddProductDialogProps {
 
 const AddProductDialog = ({ open, onOpenChange }: AddProductDialogProps) => {
   const { toast } = useToast();
+  const [selectedCategory, setSelectedCategory] = useState(categories[0]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -45,21 +48,27 @@ const AddProductDialog = ({ open, onOpenChange }: AddProductDialogProps) => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-2 block text-sm font-medium">Category</label>
-              <select className="w-full rounded-md border p-2" required>
-                <option value="live-poultry">Live Poultry</option>
+              <select 
+                className="w-full rounded-md border p-2" 
+                required
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium">Type</label>
               <select className="w-full rounded-md border p-2" required>
-                <option value="chicks">Chicks</option>
-                <option value="broilers">Broilers</option>
-                <option value="layers">Layers</option>
-                <option value="indigenous">Indigenous</option>
-                <option value="turkeys">Turkeys</option>
-                <option value="ducks">Ducks</option>
-                <option value="geese">Geese</option>
-                <option value="quails">Quails</option>
+                {productTypes[selectedCategory as keyof typeof productTypes].map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

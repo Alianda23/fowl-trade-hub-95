@@ -16,7 +16,10 @@ export default function Products() {
           <ArrowLeft className="h-5 w-5" />
           Back
         </Button>
-        <h1 className="text-2xl font-bold">Products Management</h1>
+        <div>
+          <h2 className="text-sm font-medium text-gray-500">KukuHub</h2>
+          <h1 className="text-2xl font-bold">Products Management</h1>
+        </div>
       </div>
       <Table>
         <TableHeader>

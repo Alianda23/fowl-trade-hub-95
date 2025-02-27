@@ -8,6 +8,8 @@ interface HeaderProps {
   setSearchQuery: (query: string) => void;
   cartItemsCount: number;
   setShowCart: (show: boolean) => void;
+  ordersCount: number;
+  setShowOrders: (show: boolean) => void;
   isAuthenticated: boolean;
   userEmail: string | null;
   handleLogout: () => void;
@@ -18,6 +20,8 @@ const Header = ({
   setSearchQuery,
   cartItemsCount,
   setShowCart,
+  ordersCount,
+  setShowOrders,
   isAuthenticated,
   userEmail,
   handleLogout,
@@ -42,11 +46,15 @@ const Header = ({
             {isAuthenticated && (
               <Button
                 variant="ghost"
-                className="gap-2"
-                onClick={() => navigate('/orders')}
+                className="relative"
+                onClick={() => setShowOrders(true)}
               >
-                <Package2 className="h-5 w-5" />
-                Orders
+                <Package2 className="h-6 w-6" />
+                {ordersCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-sage-600 text-xs text-white">
+                    {ordersCount}
+                  </span>
+                )}
               </Button>
             )}
             <Button

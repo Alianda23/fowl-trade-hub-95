@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import CartSidebar from "@/components/CartSidebar";
+import OrdersSidebar from "@/components/OrdersSidebar";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import CategoriesSection from "@/components/CategoriesSection";
@@ -20,10 +21,20 @@ interface CartItem extends Product {
   quantity: number;
 }
 
+interface Order {
+  id: string;
+  products: CartItem[];
+  status: string;
+  date: string;
+  total: number;
+}
+
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showCart, setShowCart] = useState(false);
+  const [showOrders, setShowOrders] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
@@ -33,6 +44,10 @@ const Index = () => {
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
       setCart(JSON.parse(savedCart));
+    }
+    const savedOrders = localStorage.getItem('orders');
+    if (savedOrders) {
+      setOrders(JSON.parse(savedOrders));
     }
   }, []);
 
@@ -125,11 +140,19 @@ const Index = () => {
         removeFromCart={removeFromCart}
       />
 
+      <OrdersSidebar
+        showOrders={showOrders}
+        setShowOrders={setShowOrders}
+        orders={orders}
+      />
+
       <Header
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         cartItemsCount={cart.length}
         setShowCart={setShowCart}
+        ordersCount={orders.length}
+        setShowOrders={setShowOrders}
         isAuthenticated={isAuthenticated}
         userEmail={userEmail}
         handleLogout={handleLogout}

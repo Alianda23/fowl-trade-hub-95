@@ -24,6 +24,7 @@ export default function Products() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>Business</TableHead>
             <TableHead>Product Name</TableHead>
             <TableHead>Category</TableHead>
             <TableHead>Price (KES)</TableHead>
@@ -34,6 +35,7 @@ export default function Products() {
         <TableBody>
           {products.map((product) => (
             <TableRow key={product.id}>
+              <TableCell>KukuHub</TableCell>
               <TableCell>{product.name}</TableCell>
               <TableCell>{product.category}</TableCell>
               <TableCell>{product.price}</TableCell>

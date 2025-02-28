@@ -42,6 +42,7 @@ export default function Orders() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>Business</TableHead>
             <TableHead>Order ID</TableHead>
             <TableHead>Customer</TableHead>
             <TableHead>Total (KES)</TableHead>
@@ -52,6 +53,7 @@ export default function Orders() {
         <TableBody>
           {mockOrders.map((order) => (
             <TableRow key={order.id}>
+              <TableCell>KukuHub</TableCell>
               <TableCell>{order.id}</TableCell>
               <TableCell>{order.customer}</TableCell>
               <TableCell>{order.total}</TableCell>

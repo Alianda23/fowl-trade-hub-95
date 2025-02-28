@@ -1,7 +1,8 @@
 
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Package2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Search, ShoppingCart, LogIn, Package2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
 
 interface HeaderProps {
   searchQuery: string;
@@ -22,14 +23,29 @@ const Header = ({
   setShowCart,
   ordersCount,
   setShowOrders,
+  isAuthenticated,
+  userEmail,
+  handleLogout,
 }: HeaderProps) => {
+  const navigate = useNavigate();
+
   return (
     <div className="sticky top-0 z-40 w-full bg-white shadow">
       <div className="container flex items-center justify-between py-4">
-        <div className="relative flex w-full max-w-md items-center">
+        <div className="relative flex w-full max-w-md items-center gap-4">
           <Link to="/">
             <h1 className="text-xl font-bold text-sage-600">KukuHub</h1>
           </Link>
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search products..."
+              className="w-full pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
@@ -60,6 +76,27 @@ const Header = ({
               )}
             </Button>
           </div>
+          {isAuthenticated ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">{userEmail}</span>
+              <Button 
+                variant="ghost" 
+                onClick={() => {
+                  handleLogout();
+                  navigate('/');
+                }}
+              >
+                Logout
+              </Button>
+            </div>
+          ) : (
+            <Link to="/login">
+              <Button variant="ghost" className="gap-2">
+                <LogIn className="h-5 w-5" />
+                Login
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
     </div>

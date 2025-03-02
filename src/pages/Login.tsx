@@ -58,24 +58,41 @@ const Login = () => {
 
             setIsLoading(true);
             try {
-              // Simulate API call
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              
-              // Store auth state in localStorage (temporary solution)
-              localStorage.setItem('isAuthenticated', 'true');
-              localStorage.setItem('userEmail', email);
-              
-              toast({
-                title: "Login successful",
-                description: "Welcome back!",
+              // Connect to Python backend
+              const response = await fetch('http://localhost:5000/api/login', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password }),
+                credentials: 'include' // Important for cookies/session
               });
               
-              // Redirect to home page after successful login
-              navigate('/');
+              const data = await response.json();
+              
+              if (data.success) {
+                // Store user info in localStorage for frontend state management
+                localStorage.setItem('isAuthenticated', 'true');
+                localStorage.setItem('userEmail', email);
+                
+                toast({
+                  title: "Login successful",
+                  description: "Welcome back!",
+                });
+                
+                // Redirect to home page after successful login
+                navigate('/');
+              } else {
+                toast({
+                  title: "Login failed",
+                  description: data.message || "Please check your credentials and try again",
+                  variant: "destructive",
+                });
+              }
             } catch (error) {
               toast({
                 title: "Login failed",
-                description: "Please check your credentials and try again",
+                description: "Could not connect to authentication server",
                 variant: "destructive",
               });
             } finally {

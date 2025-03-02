@@ -29,6 +29,29 @@ const Header = ({
 }: HeaderProps) => {
   const navigate = useNavigate();
 
+  const logout = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        // Clear local storage
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('userEmail');
+        
+        // Call the parent component's logout handler
+        handleLogout();
+        
+        // Navigate to home page
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
   return (
     <div className="sticky top-0 z-40 w-full bg-white shadow">
       <div className="container flex items-center justify-between py-4">
@@ -81,10 +104,7 @@ const Header = ({
               <span className="text-sm text-gray-600">{userEmail}</span>
               <Button 
                 variant="ghost" 
-                onClick={() => {
-                  handleLogout();
-                  navigate('/');
-                }}
+                onClick={logout}
               >
                 Logout
               </Button>

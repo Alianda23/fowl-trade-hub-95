@@ -3,12 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 const Signup = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({
     name: "",
@@ -66,11 +67,42 @@ const Signup = () => {
 
             setIsLoading(true);
             try {
-              // Simulate API call
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              // Connect to Python backend
+              const response = await fetch('http://localhost:5000/api/register', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                  username: name, 
+                  email, 
+                  password 
+                }),
+                credentials: 'include'
+              });
+              
+              const data = await response.json();
+              
+              if (data.success) {
+                toast({
+                  title: "Registration successful",
+                  description: "Your account has been created!",
+                });
+                
+                // Redirect to login page after successful registration
+                navigate('/login');
+              } else {
+                toast({
+                  title: "Registration failed",
+                  description: data.message || "Please check your information and try again",
+                  variant: "destructive",
+                });
+              }
+            } catch (error) {
               toast({
-                title: "Signup not implemented",
-                description: "This is a demo version. Authentication requires backend integration.",
+                title: "Registration failed",
+                description: "Could not connect to registration server",
+                variant: "destructive",
               });
             } finally {
               setIsLoading(false);

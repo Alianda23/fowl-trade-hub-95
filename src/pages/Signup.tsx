@@ -67,7 +67,7 @@ const Signup = () => {
 
             setIsLoading(true);
             try {
-              // Connect to Python backend
+              // Connect to Python backend - Note that we're using username instead of name to match backend expectations
               const response = await fetch('http://localhost:5000/api/register', {
                 method: 'POST',
                 headers: {
@@ -76,7 +76,8 @@ const Signup = () => {
                 body: JSON.stringify({ 
                   username: name, 
                   email, 
-                  password 
+                  password,
+                  user_type: 'buyer' // Explicitly set user_type though backend defaults to buyer
                 }),
                 credentials: 'include'
               });
@@ -86,7 +87,7 @@ const Signup = () => {
               if (data.success) {
                 toast({
                   title: "Registration successful",
-                  description: "Your account has been created!",
+                  description: "Your buyer account has been created!",
                 });
                 
                 // Redirect to login page after successful registration
@@ -173,10 +174,10 @@ const Signup = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating account...
+                  Creating buyer account...
                 </>
               ) : (
-                "Create Account"
+                "Create Buyer Account"
               )}
             </Button>
           </form>

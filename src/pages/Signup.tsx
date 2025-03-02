@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -159,6 +158,7 @@ const Signup = () => {
                 aria-describedby="password-error"
                 className={errors.password ? "border-red-500" : ""}
                 disabled={isLoading}
+                showPasswordToggle={true}
               />
               {errors.password && (
                 <p className="mt-1 text-sm text-red-500" id="password-error">

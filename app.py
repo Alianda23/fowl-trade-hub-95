@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from models import db, User, SellerProfile
@@ -13,8 +12,6 @@ app.secret_key = 'your_secret_key'  # Change this to a secure key in production
 
 CORS(app, supports_credentials=True)
 db.init_app(app)
-
-# ... keep existing code for other routes
 
 @app.route('/api/seller/register', methods=['POST'])
 def seller_register():
@@ -90,4 +87,28 @@ def seller_login():
         'seller_id': seller_profile.seller_id
     })
 
-# ... keep existing code for other routes
+@app.route('/api/seller/check-auth', methods=['GET'])
+def check_seller_auth():
+    if 'user_id' in session and 'user_type' in session and session['user_type'] == 'seller':
+        user_id = session['user_id']
+        
+        # Get seller profile
+        seller_profile = SellerProfile.query.filter_by(user_id=user_id).first()
+        
+        if seller_profile:
+            return jsonify({
+                'isAuthenticated': True,
+                'seller_id': seller_profile.seller_id,
+                'business_name': seller_profile.business_name
+            })
+    
+    return jsonify({'isAuthenticated': False})
+
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    # Clear the session
+    session.clear()
+    return jsonify({'success': True, 'message': 'Logged out successfully'})
+
+if __name__ == '__main__':
+    app.run(debug=True)

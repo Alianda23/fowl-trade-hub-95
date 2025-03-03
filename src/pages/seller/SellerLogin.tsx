@@ -66,7 +66,8 @@ const SellerLogin = () => {
                 },
                 body: JSON.stringify({ 
                   email, 
-                  password
+                  password,
+                  user_type: 'seller' // Ensure we're looking for a seller account
                 }),
                 credentials: 'include'
               });
@@ -82,6 +83,7 @@ const SellerLogin = () => {
                 // Store authentication state in localStorage
                 localStorage.setItem('isSellerAuthenticated', 'true');
                 localStorage.setItem('sellerEmail', email);
+                localStorage.setItem('sellerId', data.seller_id.toString());
                 
                 // Redirect to seller dashboard
                 navigate('/seller');

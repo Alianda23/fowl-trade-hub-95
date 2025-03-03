@@ -12,24 +12,26 @@ const SellerSignup = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({
-    businessName: "",
+    username: "",
     email: "",
     phone: "",
     password: "",
+    businessName: "",
   });
 
-  const validateForm = (businessName: string, email: string, phone: string, password: string) => {
+  const validateForm = (username: string, email: string, phone: string, password: string, businessName: string) => {
     const newErrors = {
-      businessName: "",
+      username: "",
       email: "",
       phone: "",
       password: "",
+      businessName: "",
     };
 
-    if (!businessName) {
-      newErrors.businessName = "Business name is required";
-    } else if (businessName.length < 2) {
-      newErrors.businessName = "Business name must be at least 2 characters";
+    if (!username) {
+      newErrors.username = "Username is required";
+    } else if (username.length < 2) {
+      newErrors.username = "Username must be at least 2 characters";
     }
 
     if (!email) {
@@ -50,8 +52,14 @@ const SellerSignup = () => {
       newErrors.password = "Password must be at least 6 characters";
     }
 
+    if (!businessName) {
+      newErrors.businessName = "Business name is required";
+    } else if (businessName.length < 2) {
+      newErrors.businessName = "Business name must be at least 2 characters";
+    }
+
     setErrors(newErrors);
-    return !newErrors.businessName && !newErrors.email && !newErrors.phone && !newErrors.password;
+    return !newErrors.username && !newErrors.email && !newErrors.phone && !newErrors.password && !newErrors.businessName;
   };
 
   return (
@@ -65,12 +73,13 @@ const SellerSignup = () => {
           <form onSubmit={async (e) => {
             e.preventDefault();
             const formData = new FormData(e.currentTarget);
-            const businessName = formData.get("businessName") as string;
+            const username = formData.get("username") as string;
             const email = formData.get("email") as string;
             const phone = formData.get("phone") as string;
             const password = formData.get("password") as string;
+            const businessName = formData.get("businessName") as string;
 
-            if (!validateForm(businessName, email, phone, password)) {
+            if (!validateForm(username, email, phone, password, businessName)) {
               return;
             }
 
@@ -83,11 +92,12 @@ const SellerSignup = () => {
                   'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ 
-                  username: businessName, 
+                  username, 
                   email, 
-                  phone,
+                  phone_number: phone,
                   password,
-                  user_type: 'seller'
+                  user_type: 'seller',
+                  business_name: businessName
                 }),
                 credentials: 'include'
               });
@@ -120,6 +130,25 @@ const SellerSignup = () => {
               setIsLoading(false);
             }
           }} className="space-y-4">
+            <div>
+              <label htmlFor="username" className="mb-2 block text-sm font-medium">
+                Username
+              </label>
+              <Input
+                type="text"
+                id="username"
+                name="username"
+                placeholder="johndoe123"
+                aria-describedby="username-error"
+                className={errors.username ? "border-red-500" : ""}
+                disabled={isLoading}
+              />
+              {errors.username && (
+                <p className="mt-1 text-sm text-red-500" id="username-error">
+                  {errors.username}
+                </p>
+              )}
+            </div>
             <div>
               <label htmlFor="businessName" className="mb-2 block text-sm font-medium">
                 Business Name

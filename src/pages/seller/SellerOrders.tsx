@@ -11,9 +11,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Truck, XCircle, ArrowLeft } from "lucide-react";
+import { Truck, XCircle, ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 interface Order {
   id: string;
@@ -28,6 +29,55 @@ interface Order {
 const SellerOrders = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        // Check if user is authenticated in localStorage
+        const storedAuth = localStorage.getItem('isSellerAuthenticated');
+        const storedEmail = localStorage.getItem('sellerEmail');
+        
+        if (storedAuth === 'true' && storedEmail) {
+          // Verify with backend
+          const response = await fetch('http://localhost:5000/api/seller/check-auth', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include'
+          });
+          
+          const data = await response.json();
+          
+          if (data.authenticated && data.user_type === 'seller') {
+            setIsAuthenticated(true);
+          } else {
+            // If backend says not authenticated, clear localStorage and redirect
+            localStorage.removeItem('isSellerAuthenticated');
+            localStorage.removeItem('sellerEmail');
+            navigate('/seller/login');
+          }
+        } else {
+          // No stored auth, redirect to login
+          navigate('/seller/login');
+        }
+      } catch (error) {
+        console.error("Auth check error:", error);
+        toast({
+          title: "Authentication Error",
+          description: "Please log in again",
+          variant: "destructive",
+        });
+        navigate('/seller/login');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, [navigate, toast]);
   
   // This would typically come from your backend
   const orders: Order[] = [
@@ -72,6 +122,18 @@ const SellerOrders = () => {
       </Badge>
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-sage-600" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null; // Will redirect in useEffect
+  }
 
   return (
     <div className="flex min-h-screen">

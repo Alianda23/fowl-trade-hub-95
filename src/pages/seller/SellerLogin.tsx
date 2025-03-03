@@ -3,12 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 const SellerLogin = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({
     email: "",
@@ -57,12 +58,47 @@ const SellerLogin = () => {
 
             setIsLoading(true);
             try {
-              // Simulate API call
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              toast({
-                title: "Login not implemented",
-                description: "This is a demo version. Authentication requires backend integration.",
+              // Connect to Python backend
+              const response = await fetch('http://localhost:5000/api/seller/login', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                  email, 
+                  password
+                }),
+                credentials: 'include'
               });
+              
+              const data = await response.json();
+              
+              if (data.success) {
+                toast({
+                  title: "Login successful",
+                  description: "Welcome back to your seller dashboard!",
+                });
+                
+                // Store authentication state in localStorage
+                localStorage.setItem('isSellerAuthenticated', 'true');
+                localStorage.setItem('sellerEmail', email);
+                
+                // Redirect to seller dashboard
+                navigate('/seller');
+              } else {
+                toast({
+                  title: "Login failed",
+                  description: data.message || "Invalid email or password",
+                  variant: "destructive",
+                });
+              }
+            } catch (error) {
+              toast({
+                title: "Login failed",
+                description: "Could not connect to authentication server",
+                variant: "destructive",
+              });
+              console.error("Login error:", error);
             } finally {
               setIsLoading(false);
             }
@@ -98,6 +134,7 @@ const SellerLogin = () => {
                 aria-describedby="password-error"
                 className={errors.password ? "border-red-500" : ""}
                 disabled={isLoading}
+                showPasswordToggle={true}
               />
               {errors.password && (
                 <p className="mt-1 text-sm text-red-500" id="password-error">

@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from models import db, User, SellerProfile
@@ -12,6 +13,73 @@ app.secret_key = 'your_secret_key'  # Change this to a secure key in production
 
 CORS(app, supports_credentials=True)
 db.init_app(app)
+
+@app.route('/api/register', methods=['POST'])
+def register():
+    data = request.json
+    
+    # Check if user already exists
+    existing_user = User.query.filter_by(email=data['email']).first()
+    if existing_user:
+        return jsonify({'success': False, 'message': 'Email already registered'})
+    
+    try:
+        # Create new user with default user_type='buyer' if not specified
+        hashed_password = generate_password_hash(data['password'])
+        new_user = User(
+            username=data['username'],
+            email=data['email'],
+            password_hash=hashed_password,
+            user_type=data.get('user_type', 'buyer'),
+            phone_number=data.get('phone_number')
+        )
+        
+        db.session.add(new_user)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'User registered successfully'})
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error during registration: {str(e)}")
+        return jsonify({'success': False, 'message': f'Registration failed: {str(e)}'})
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.json
+    
+    # Find user by email
+    user = User.query.filter_by(email=data['email']).first()
+    
+    if not user or not check_password_hash(user.password_hash, data['password']):
+        return jsonify({'success': False, 'message': 'Invalid credentials'})
+    
+    # Set session data for the user
+    session['user_id'] = user.user_id
+    session['user_type'] = user.user_type
+    
+    return jsonify({
+        'success': True, 
+        'message': 'Login successful',
+        'user_id': user.user_id,
+        'user_type': user.user_type
+    })
+
+@app.route('/api/check-auth', methods=['GET'])
+def check_auth():
+    if 'user_id' in session:
+        user_id = session['user_id']
+        user = User.query.get(user_id)
+        
+        if user:
+            return jsonify({
+                'isAuthenticated': True,
+                'user_id': user.user_id,
+                'username': user.username,
+                'user_type': user.user_type
+            })
+    
+    return jsonify({'isAuthenticated': False})
 
 @app.route('/api/seller/register', methods=['POST'])
 def seller_register():

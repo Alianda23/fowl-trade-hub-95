@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from models import db, User, SellerProfile
@@ -171,6 +170,26 @@ def check_seller_auth():
             })
     
     return jsonify({'isAuthenticated': False})
+
+@app.route('/api/admin/login', methods=['POST'])
+def admin_login():
+    data = request.json
+    
+    # Find admin by email
+    admin = User.query.filter_by(email=data['email'], user_type='admin').first()
+    
+    if not admin or not check_password_hash(admin.password_hash, data['password']):
+        return jsonify({'success': False, 'message': 'Invalid admin credentials'})
+    
+    # Set session data for the admin
+    session['user_id'] = admin.user_id
+    session['user_type'] = admin.user_type
+    
+    return jsonify({
+        'success': True, 
+        'message': 'Admin login successful',
+        'user_id': admin.user_id,
+    })
 
 @app.route('/api/logout', methods=['POST'])
 def logout():

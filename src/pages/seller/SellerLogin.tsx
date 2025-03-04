@@ -26,9 +26,13 @@ const SellerLogin = () => {
         });
         
         const data = await response.json();
+        console.log("Auth check response:", data);
         
         if (data.isAuthenticated) {
-          navigate('/seller');
+          console.log("User is authenticated, redirecting to seller dashboard");
+          navigate('/seller', { replace: true });
+        } else {
+          console.log("User is not authenticated");
         }
       } catch (error) {
         console.error("Auth check error:", error);
@@ -67,6 +71,8 @@ const SellerLogin = () => {
 
     setIsLoading(true);
     try {
+      console.log("Attempting login with:", { email, password });
+      
       // Connect to Python backend
       const response = await fetch('http://localhost:5000/api/seller/login', {
         method: 'POST',
@@ -75,13 +81,13 @@ const SellerLogin = () => {
         },
         body: JSON.stringify({ 
           email, 
-          password,
-          user_type: 'seller' // Ensure we're looking for a seller account
+          password 
         }),
         credentials: 'include'
       });
       
       const data = await response.json();
+      console.log("Login response:", data);
       
       if (data.success) {
         toast({
@@ -92,11 +98,17 @@ const SellerLogin = () => {
         // Store authentication state in localStorage
         localStorage.setItem('isSellerAuthenticated', 'true');
         localStorage.setItem('sellerEmail', email);
-        localStorage.setItem('sellerId', data.seller_id.toString());
         
-        // Force navigation to seller dashboard
+        if (data.seller_id) {
+          localStorage.setItem('sellerId', data.seller_id.toString());
+        }
+        
+        // Force navigation to seller dashboard with replace to prevent back button issues
         console.log("Redirecting to seller dashboard...");
-        navigate('/seller', { replace: true });
+        setTimeout(() => {
+          // Using a timeout to ensure state updates are processed
+          navigate('/seller', { replace: true });
+        }, 100);
       } else {
         toast({
           title: "Login failed",
@@ -105,12 +117,12 @@ const SellerLogin = () => {
         });
       }
     } catch (error) {
+      console.error("Login error:", error);
       toast({
         title: "Login failed",
         description: "Could not connect to authentication server",
         variant: "destructive",
       });
-      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }

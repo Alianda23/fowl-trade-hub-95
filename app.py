@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from models import db, User, SellerProfile, AdminProfile
@@ -24,13 +25,12 @@ def register():
         return jsonify({'success': False, 'message': 'Email already registered'})
     
     try:
-        # Create new user with default user_type='buyer' if not specified
+        # Create new buyer user
         hashed_password = generate_password_hash(data['password'])
         new_user = User(
             username=data['username'],
             email=data['email'],
             password_hash=hashed_password,
-            user_type=data.get('user_type', 'buyer'),
             phone_number=data.get('phone_number')
         )
         
@@ -48,7 +48,7 @@ def register():
 def login():
     data = request.json
     
-    # Find user by email
+    # Find user (buyer) by email
     user = User.query.filter_by(email=data['email']).first()
     
     if not user or not check_password_hash(user.password_hash, data['password']):
@@ -56,13 +56,13 @@ def login():
     
     # Set session data for the user
     session['user_id'] = user.user_id
-    session['user_type'] = user.user_type
     
     return jsonify({
         'success': True, 
         'message': 'Login successful',
         'user_id': user.user_id,
-        'user_type': user.user_type
+        'username': user.username,
+        'email': user.email
     })
 
 @app.route('/api/check-auth', methods=['GET'])
@@ -76,7 +76,7 @@ def check_auth():
                 'isAuthenticated': True,
                 'user_id': user.user_id,
                 'username': user.username,
-                'user_type': user.user_type
+                'email': user.email
             })
     
     return jsonify({'isAuthenticated': False})
@@ -85,36 +85,25 @@ def check_auth():
 def seller_register():
     data = request.json
     
-    # Check if user already exists
-    existing_user = User.query.filter_by(email=data['email']).first()
-    if existing_user:
+    # Check if seller already exists
+    existing_seller = SellerProfile.query.filter_by(email=data['email']).first()
+    if existing_seller:
         return jsonify({'success': False, 'message': 'Email already registered'})
     
     try:
-        # Create new user with user_type='seller'
+        # Create new seller directly in SellerProfile
         hashed_password = generate_password_hash(data['password'])
-        new_user = User(
+        new_seller = SellerProfile(
             username=data['username'],
             email=data['email'],
             password_hash=hashed_password,
-            user_type='seller',
-            phone_number=data.get('phone_number')
-        )
-        
-        # Add and commit user to get the user_id
-        db.session.add(new_user)
-        db.session.flush()  # This gets the user_id without committing
-        
-        # Create seller profile linked to the new user
-        new_seller_profile = SellerProfile(
-            user_id=new_user.user_id,
             business_name=data['business_name'],
-            business_description=None,  # Initially null
+            business_description=data.get('business_description'),
+            phone_number=data.get('phone_number'),
             approval_status='pending'  # Default status
         )
         
-        # Add seller profile and commit both transactions
-        db.session.add(new_seller_profile)
+        db.session.add(new_seller)
         db.session.commit()
         
         return jsonify({'success': True, 'message': 'Seller registered successfully'})
@@ -128,32 +117,23 @@ def seller_register():
 def seller_login():
     data = request.json
     
-    # First check if user exists and is a seller
-    user = User.query.filter_by(email=data['email'], user_type='seller').first()
+    # Find seller by email
+    seller = SellerProfile.query.filter_by(email=data['email']).first()
     
-    if not user or not check_password_hash(user.password_hash, data['password']):
+    if not seller or not check_password_hash(seller.password_hash, data['password']):
         return jsonify({'success': False, 'message': 'Invalid credentials'})
     
-    # Get seller profile to check approval status
-    seller_profile = SellerProfile.query.filter_by(user_id=user.user_id).first()
-    
-    if not seller_profile:
-        return jsonify({'success': False, 'message': 'Seller profile not found'})
-    
-    # Optional: Check if seller is approved
-    # if seller_profile.approval_status != 'approved':
-    #     return jsonify({'success': False, 'message': 'Your seller account is pending approval'})
-    
-    # Set session data
-    session['user_id'] = user.user_id
-    session['user_type'] = 'seller'
-    session['seller_id'] = seller_profile.seller_id
+    # Set session data for the seller
+    session['seller_id'] = seller.seller_id
     
     return jsonify({
         'success': True, 
         'message': 'Login successful',
-        'seller_id': seller_profile.seller_id,
-        'business_name': seller_profile.business_name
+        'seller_id': seller.seller_id,
+        'username': seller.username,
+        'email': seller.email,
+        'business_name': seller.business_name,
+        'approval_status': seller.approval_status
     })
 
 @app.route('/api/seller/check-auth', methods=['GET'])
@@ -165,28 +145,22 @@ def admin_login():
     data = request.json
     
     # Find admin by email
-    admin = User.query.filter_by(email=data['email'], user_type='admin').first()
+    admin = AdminProfile.query.filter_by(email=data['email']).first()
     
     if not admin or not check_password_hash(admin.password_hash, data['password']):
         return jsonify({'success': False, 'message': 'Invalid admin credentials'})
     
-    # Get admin profile
-    admin_profile = AdminProfile.query.filter_by(user_id=admin.user_id).first()
-    
-    if not admin_profile:
-        return jsonify({'success': False, 'message': 'Admin profile not found'})
-    
     # Set session data for the admin
-    session['user_id'] = admin.user_id
-    session['user_type'] = 'admin'
-    session['admin_id'] = admin_profile.admin_id
+    session['admin_id'] = admin.admin_id
     
     return jsonify({
         'success': True, 
         'message': 'Admin login successful',
-        'user_id': admin.user_id,
-        'admin_id': admin_profile.admin_id,
-        'role': admin_profile.role
+        'admin_id': admin.admin_id,
+        'username': admin.username,
+        'email': admin.email,
+        'role': admin.role,
+        'department': admin.department
     })
 
 @app.route('/api/admin/check-auth', methods=['GET'])

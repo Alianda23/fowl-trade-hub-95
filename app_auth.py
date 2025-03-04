@@ -3,46 +3,42 @@ from flask import jsonify, session
 from models import User, SellerProfile, AdminProfile
 
 def check_admin_auth():
-    if 'user_id' in session and 'user_type' in session and session['user_type'] == 'admin':
-        user_id = session['user_id']
+    if 'admin_id' in session:
+        admin_id = session['admin_id']
         
-        # Get admin user details
-        admin_user = User.query.filter_by(user_id=user_id, user_type='admin').first()
-        admin_profile = AdminProfile.query.filter_by(user_id=user_id).first()
+        # Get admin user details directly from AdminProfile
+        admin = AdminProfile.query.filter_by(admin_id=admin_id).first()
         
-        if admin_user and admin_profile:
+        if admin:
             return jsonify({
                 'isAuthenticated': True,
-                'user_id': admin_user.user_id,
-                'username': admin_user.username,
-                'admin_id': admin_profile.admin_id,
-                'role': admin_profile.role,
-                'department': admin_profile.department,
-                'user_type': 'admin'
+                'admin_id': admin.admin_id,
+                'username': admin.username,
+                'email': admin.email,
+                'role': admin.role,
+                'department': admin.department,
+                'phone_number': admin.phone_number
             })
     
     return jsonify({'isAuthenticated': False})
 
 def check_seller_auth():
-    if 'user_id' in session and 'user_type' in session and session['user_type'] == 'seller':
-        user_id = session['user_id']
+    if 'seller_id' in session:
+        seller_id = session['seller_id']
         
-        # Get seller profile
-        seller_profile = SellerProfile.query.filter_by(user_id=user_id).first()
-        user = User.query.filter_by(user_id=user_id).first()
+        # Get seller profile directly from SellerProfile
+        seller = SellerProfile.query.filter_by(seller_id=seller_id).first()
         
-        if seller_profile and user:
+        if seller:
             return jsonify({
                 'isAuthenticated': True,
-                'seller_id': seller_profile.seller_id,
-                'business_name': seller_profile.business_name,
-                'business_description': seller_profile.business_description,
-                'approval_status': seller_profile.approval_status,
-                'user_id': user.user_id,
-                'username': user.username,
-                'email': user.email,
-                'phone_number': user.phone_number,
-                'user_type': 'seller'
+                'seller_id': seller.seller_id,
+                'username': seller.username,
+                'email': seller.email,
+                'business_name': seller.business_name,
+                'business_description': seller.business_description,
+                'approval_status': seller.approval_status,
+                'phone_number': seller.phone_number
             })
     
     return jsonify({'isAuthenticated': False})

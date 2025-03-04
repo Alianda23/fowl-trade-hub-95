@@ -1,7 +1,7 @@
 
 from flask import Flask
 from werkzeug.security import generate_password_hash
-from models import db, User, AdminProfile
+from models import db, AdminProfile
 import sys
 
 app = Flask(__name__)
@@ -12,33 +12,24 @@ db.init_app(app)
 def create_admin_user(username, email, password, role='general', department=None, phone_number=None):
     with app.app_context():
         # Check if admin already exists
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user:
-            print(f"Error: User with email {email} already exists.")
+        existing_admin = AdminProfile.query.filter_by(email=email).first()
+        if existing_admin:
+            print(f"Error: Admin with email {email} already exists.")
             return False
         
         try:
-            # Create new admin user
+            # Create new admin directly in AdminProfile
             hashed_password = generate_password_hash(password)
-            new_admin = User(
+            new_admin = AdminProfile(
                 username=username,
                 email=email,
                 password_hash=hashed_password,
-                user_type='admin',  # Set user_type as admin
+                role=role,
+                department=department,
                 phone_number=phone_number
             )
             
             db.session.add(new_admin)
-            db.session.flush()  # Get the user_id without committing
-            
-            # Create admin profile
-            admin_profile = AdminProfile(
-                user_id=new_admin.user_id,
-                role=role,
-                department=department
-            )
-            
-            db.session.add(admin_profile)
             db.session.commit()
             
             print(f"Admin user {username} created successfully!")

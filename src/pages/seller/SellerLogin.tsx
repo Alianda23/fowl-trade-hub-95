@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 const SellerLogin = () => {
@@ -15,6 +15,28 @@ const SellerLogin = () => {
     email: "",
     password: "",
   });
+
+  // Check if already authenticated on component mount
+  useEffect(() => {
+    const checkAuthentication = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/seller/check-auth', {
+          method: 'GET',
+          credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (data.isAuthenticated) {
+          navigate('/seller');
+        }
+      } catch (error) {
+        console.error("Auth check error:", error);
+      }
+    };
+    
+    checkAuthentication();
+  }, [navigate]);
 
   const validateForm = (email: string, password: string) => {
     const newErrors = {
@@ -38,6 +60,62 @@ const SellerLogin = () => {
     return !newErrors.email && !newErrors.password;
   };
 
+  const handleLogin = async (email: string, password: string) => {
+    if (!validateForm(email, password)) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Connect to Python backend
+      const response = await fetch('http://localhost:5000/api/seller/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          email, 
+          password,
+          user_type: 'seller' // Ensure we're looking for a seller account
+        }),
+        credentials: 'include'
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Login successful",
+          description: "Welcome back to your seller dashboard!",
+        });
+        
+        // Store authentication state in localStorage
+        localStorage.setItem('isSellerAuthenticated', 'true');
+        localStorage.setItem('sellerEmail', email);
+        localStorage.setItem('sellerId', data.seller_id.toString());
+        
+        // Force navigation to seller dashboard
+        console.log("Redirecting to seller dashboard...");
+        navigate('/seller', { replace: true });
+      } else {
+        toast({
+          title: "Login failed",
+          description: data.message || "Invalid email or password",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Login failed",
+        description: "Could not connect to authentication server",
+        variant: "destructive",
+      });
+      console.error("Login error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-sage-50 p-4">
       <Card className="w-full max-w-md">
@@ -51,59 +129,8 @@ const SellerLogin = () => {
             const formData = new FormData(e.currentTarget);
             const email = formData.get("email") as string;
             const password = formData.get("password") as string;
-
-            if (!validateForm(email, password)) {
-              return;
-            }
-
-            setIsLoading(true);
-            try {
-              // Connect to Python backend
-              const response = await fetch('http://localhost:5000/api/seller/login', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                  email, 
-                  password,
-                  user_type: 'seller' // Ensure we're looking for a seller account
-                }),
-                credentials: 'include'
-              });
-              
-              const data = await response.json();
-              
-              if (data.success) {
-                toast({
-                  title: "Login successful",
-                  description: "Welcome back to your seller dashboard!",
-                });
-                
-                // Store authentication state in localStorage
-                localStorage.setItem('isSellerAuthenticated', 'true');
-                localStorage.setItem('sellerEmail', email);
-                localStorage.setItem('sellerId', data.seller_id.toString());
-                
-                // Redirect to seller dashboard
-                navigate('/seller');
-              } else {
-                toast({
-                  title: "Login failed",
-                  description: data.message || "Invalid email or password",
-                  variant: "destructive",
-                });
-              }
-            } catch (error) {
-              toast({
-                title: "Login failed",
-                description: "Could not connect to authentication server",
-                variant: "destructive",
-              });
-              console.error("Login error:", error);
-            } finally {
-              setIsLoading(false);
-            }
+            
+            await handleLogin(email, password);
           }} className="space-y-4">
             <div>
               <label htmlFor="email" className="mb-2 block text-sm font-medium">

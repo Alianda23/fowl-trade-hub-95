@@ -1,9 +1,10 @@
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
-from models import db, User, SellerProfile
+from models import db, User, SellerProfile, AdminProfile
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
+from app_auth import check_admin_auth, check_seller_auth
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/kukuhub'
@@ -151,25 +152,13 @@ def seller_login():
     return jsonify({
         'success': True, 
         'message': 'Login successful',
-        'seller_id': seller_profile.seller_id
+        'seller_id': seller_profile.seller_id,
+        'business_name': seller_profile.business_name
     })
 
 @app.route('/api/seller/check-auth', methods=['GET'])
-def check_seller_auth():
-    if 'user_id' in session and 'user_type' in session and session['user_type'] == 'seller':
-        user_id = session['user_id']
-        
-        # Get seller profile
-        seller_profile = SellerProfile.query.filter_by(user_id=user_id).first()
-        
-        if seller_profile:
-            return jsonify({
-                'isAuthenticated': True,
-                'seller_id': seller_profile.seller_id,
-                'business_name': seller_profile.business_name
-            })
-    
-    return jsonify({'isAuthenticated': False})
+def seller_auth_check():
+    return check_seller_auth()
 
 @app.route('/api/admin/login', methods=['POST'])
 def admin_login():
@@ -181,15 +170,28 @@ def admin_login():
     if not admin or not check_password_hash(admin.password_hash, data['password']):
         return jsonify({'success': False, 'message': 'Invalid admin credentials'})
     
+    # Get admin profile
+    admin_profile = AdminProfile.query.filter_by(user_id=admin.user_id).first()
+    
+    if not admin_profile:
+        return jsonify({'success': False, 'message': 'Admin profile not found'})
+    
     # Set session data for the admin
     session['user_id'] = admin.user_id
-    session['user_type'] = admin.user_type
+    session['user_type'] = 'admin'
+    session['admin_id'] = admin_profile.admin_id
     
     return jsonify({
         'success': True, 
         'message': 'Admin login successful',
         'user_id': admin.user_id,
+        'admin_id': admin_profile.admin_id,
+        'role': admin_profile.role
     })
+
+@app.route('/api/admin/check-auth', methods=['GET'])
+def admin_auth_check():
+    return check_admin_auth()
 
 @app.route('/api/logout', methods=['POST'])
 def logout():

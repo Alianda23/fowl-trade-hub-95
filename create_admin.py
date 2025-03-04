@@ -1,7 +1,7 @@
 
 from flask import Flask
 from werkzeug.security import generate_password_hash
-from models import db, User
+from models import db, User, AdminProfile
 import sys
 
 app = Flask(__name__)
@@ -9,7 +9,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/kukuhub
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
-def create_admin_user(username, email, password, phone_number=None):
+def create_admin_user(username, email, password, role='general', department=None, phone_number=None):
     with app.app_context():
         # Check if admin already exists
         existing_user = User.query.filter_by(email=email).first()
@@ -29,9 +29,20 @@ def create_admin_user(username, email, password, phone_number=None):
             )
             
             db.session.add(new_admin)
+            db.session.flush()  # Get the user_id without committing
+            
+            # Create admin profile
+            admin_profile = AdminProfile(
+                user_id=new_admin.user_id,
+                role=role,
+                department=department
+            )
+            
+            db.session.add(admin_profile)
             db.session.commit()
             
             print(f"Admin user {username} created successfully!")
+            print(f"Role: {role}, Department: {department or 'Not specified'}")
             return True
             
         except Exception as e:
@@ -41,14 +52,16 @@ def create_admin_user(username, email, password, phone_number=None):
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        print("Usage: python create_admin.py <username> <email> <password> [phone_number]")
+        print("Usage: python create_admin.py <username> <email> <password> [role] [department] [phone_number]")
         sys.exit(1)
     
     username = sys.argv[1]
     email = sys.argv[2]
     password = sys.argv[3]
-    phone_number = sys.argv[4] if len(sys.argv) > 4 else None
+    role = sys.argv[4] if len(sys.argv) > 4 else 'general'
+    department = sys.argv[5] if len(sys.argv) > 5 else None
+    phone_number = sys.argv[6] if len(sys.argv) > 6 else None
     
-    success = create_admin_user(username, email, password, phone_number)
+    success = create_admin_user(username, email, password, role, department, phone_number)
     if not success:
         sys.exit(1)

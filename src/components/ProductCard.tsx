@@ -41,6 +41,11 @@ const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
           <p className="mt-4 text-2xl font-bold text-sage-600">
             KShs {product.price.toLocaleString()}
           </p>
+          {product.sellerName && (
+            <p className="mt-2 text-sm text-gray-600">
+              Seller: {product.sellerName}
+            </p>
+          )}
         </CardContent>
         <CardFooter className="flex gap-2 p-6 pt-0">
           <Button 
@@ -68,7 +73,7 @@ const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
         open={showMessageDialog}
         onOpenChange={setShowMessageDialog}
         productName={product.name}
-        sellerId={product.id} // Assuming product.id can be used as sellerId for now
+        sellerId={product.sellerId || product.id} // Use specific sellerId if available, fallback to product.id
       />
     </>
   );

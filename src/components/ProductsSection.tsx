@@ -1,7 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { products, categories } from "@/data/products";
+import { categories, products as sampleProducts } from "@/data/products";
 import ProductCard from "./ProductCard";
 import { Loader2 } from "lucide-react";
 
@@ -13,10 +13,33 @@ interface ProductsSectionProps {
 const ProductsSection = ({ searchQuery, onAddToCart }: ProductsSectionProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [products, setProducts] = useState(sampleProducts);
 
-  // Simulate loading state for demo
-  setTimeout(() => setIsLoading(false), 1000);
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/products');
+        const data = await response.json();
+        
+        if (data.success) {
+          setProducts(data.products);
+        } else {
+          // Fallback to sample products if API fails
+          setProducts(sampleProducts);
+        }
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        // Fallback to sample products if API fails
+        setProducts(sampleProducts);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProducts();
+  }, []);
 
+  // Filter products based on search query and selected category
   const filteredProducts = products
     .filter((product) => 
       (selectedCategory ? product.category === selectedCategory : true) &&
@@ -106,4 +129,3 @@ const ProductsSection = ({ searchQuery, onAddToCart }: ProductsSectionProps) => 
 };
 
 export default ProductsSection;
-

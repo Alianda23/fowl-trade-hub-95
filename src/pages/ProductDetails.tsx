@@ -1,11 +1,11 @@
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { products } from "@/data/products";
+import { products as sampleProducts } from "@/data/products";
 import { useParams, useNavigate } from "react-router-dom";
 import { ShoppingCart, ArrowLeft, MessageSquare } from "lucide-react";
 import Copyright from "@/components/Copyright";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MessageDialog from "@/components/MessageDialog";
 
 const ProductDetails = () => {
@@ -13,8 +13,44 @@ const ProductDetails = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [showMessageDialog, setShowMessageDialog] = useState(false);
+  const [product, setProduct] = useState(sampleProducts.find(p => p.id === productId));
+  const [isLoading, setIsLoading] = useState(true);
 
-  const product = products.find(p => p.id === productId);
+  useEffect(() => {
+    const fetchProductDetails = async () => {
+      if (!productId) return;
+      
+      try {
+        const response = await fetch(`http://localhost:5000/api/products/${productId}`);
+        const data = await response.json();
+        
+        if (data.success && data.product) {
+          setProduct(data.product);
+        } else {
+          // Fallback to sample data if API fails
+          setProduct(sampleProducts.find(p => p.id === productId));
+        }
+      } catch (error) {
+        console.error("Error fetching product details:", error);
+        // Fallback to sample data if API fails
+        setProduct(sampleProducts.find(p => p.id === productId));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProductDetails();
+  }, [productId]);
+
+  if (isLoading) {
+    return (
+      <div className="container flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <p>Loading product details...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -103,6 +139,12 @@ const ProductDetails = () => {
             <h2 className="mb-2 text-xl font-semibold">Category</h2>
             <p className="text-gray-600">{product.category}</p>
           </div>
+          {product.sellerName && (
+            <div className="border-t pt-4">
+              <h2 className="mb-2 text-xl font-semibold">Seller</h2>
+              <p className="text-gray-600">{product.sellerName}</p>
+            </div>
+          )}
           <div className="flex gap-2">
             <Button
               size="lg"
@@ -128,7 +170,7 @@ const ProductDetails = () => {
         open={showMessageDialog}
         onOpenChange={setShowMessageDialog}
         productName={product.name}
-        sellerId={product.id}
+        sellerId={product.sellerId || product.id}
       />
 
       <Copyright />

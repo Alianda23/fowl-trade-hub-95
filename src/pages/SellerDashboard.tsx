@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { Product } from "@/data/products";
-import { Plus, MessageSquare, User, ArrowLeft } from "lucide-react";
+import { Plus, MessageSquare, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import SellerSidebar from "@/components/seller/SellerSidebar";
 import ProductList from "@/components/seller/ProductList";
@@ -19,6 +19,36 @@ const SellerDashboard = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sellerEmail, setSellerEmail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const fetchProducts = async () => {
+    try {
+      // Check authentication
+      const authResponse = await fetch('http://localhost:5000/api/seller/check-auth', {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      const authData = await authResponse.json();
+      
+      if (authData.isAuthenticated) {
+        // Fetch seller's products
+        const productsResponse = await fetch('http://localhost:5000/api/seller/products', {
+          method: 'GET',
+          credentials: 'include'
+        });
+        
+        const productsData = await productsResponse.json();
+        
+        if (productsData.success) {
+          setProducts(productsData.products || []);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -42,26 +72,26 @@ const SellerDashboard = () => {
           if (data.isAuthenticated) {
             setIsAuthenticated(true);
             setSellerEmail(storedEmail);
+            
+            // Fetch products after confirming authentication
+            fetchProducts();
           } else {
             // If backend says not authenticated, clear localStorage
             localStorage.removeItem('isSellerAuthenticated');
             localStorage.removeItem('sellerEmail');
+            setIsLoading(false);
           }
+        } else {
+          setIsLoading(false);
         }
       } catch (error) {
         console.error("Auth check error:", error);
-        toast({
-          title: "Authentication Error",
-          description: "Please log in to manage products",
-          variant: "destructive",
-        });
-      } finally {
         setIsLoading(false);
       }
     };
 
     checkAuth();
-  }, [navigate, toast]);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -76,6 +106,7 @@ const SellerDashboard = () => {
       
       setIsAuthenticated(false);
       setSellerEmail(null);
+      setProducts([]);
       
       toast({
         title: "Logged out",
@@ -87,7 +118,7 @@ const SellerDashboard = () => {
   };
 
   const stats = {
-    totalProducts: products.length || 1,
+    totalProducts: products.length || 0,
     totalOrders: 0,
     messages: 0
   };
@@ -181,6 +212,7 @@ const SellerDashboard = () => {
           <AddProductDialog 
             open={showAddProduct} 
             onOpenChange={setShowAddProduct} 
+            onProductAdded={fetchProducts}
           />
 
           <MessagesDialog 

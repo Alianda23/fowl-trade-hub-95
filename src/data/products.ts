@@ -1,3 +1,4 @@
+
 export interface Product {
   id: string;
   name: string;
@@ -6,6 +7,10 @@ export interface Product {
   description: string;
   image: string;
   stock: number;
+  sellerId?: string;
+  sellerName?: string;
+  sellerEmail?: string;
+  createdAt?: string;
 }
 
 export const categories = [
@@ -87,7 +92,9 @@ export const products: Product[] = [
     price: 100,
     description: "Healthy day-old chicks for starting your poultry farm",
     image: "https://images.unsplash.com/photo-1517022812141-23620dba5c23",
-    stock: 50
+    stock: 50,
+    sellerId: "sample-seller-1",
+    sellerName: "Sample Poultry Farm"
   },
   {
     id: "broilers",
@@ -96,7 +103,9 @@ export const products: Product[] = [
     price: 450,
     description: "Ready for meat production, 6-8 weeks old",
     image: "https://images.unsplash.com/photo-1535268647677-300dbf3d78d1",
-    stock: 30
+    stock: 30,
+    sellerId: "sample-seller-2",
+    sellerName: "Broiler Express"
   },
   // Poultry Products
   {
@@ -106,7 +115,9 @@ export const products: Product[] = [
     price: 360,
     description: "Fresh farm eggs, tray of 30",
     image: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9",
-    stock: 100
+    stock: 100,
+    sellerId: "sample-seller-1", 
+    sellerName: "Sample Poultry Farm"
   },
   // Feeds & Supplements
   {
@@ -116,6 +127,8 @@ export const products: Product[] = [
     price: 2500,
     description: "High-quality starter feed for chicks, 50kg bag",
     image: "https://images.unsplash.com/photo-1466721591366-2d5fba72006d",
-    stock: 25
+    stock: 25,
+    sellerId: "sample-seller-3",
+    sellerName: "Poultry Feed Suppliers"
   }
 ];

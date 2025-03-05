@@ -40,3 +40,42 @@ class AdminProfile(db.Model):
     department = db.Column(db.String(100), nullable=True)
     phone_number = db.Column(db.String(20), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# New Models for Products and Messages
+class Product(db.Model):
+    __tablename__ = 'products'
+    
+    product_id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    stock = db.Column(db.Integer, nullable=False, default=0)
+    category = db.Column(db.String(100), nullable=False)
+    image_url = db.Column(db.String(255), nullable=True)
+    
+    seller_id = db.Column(db.Integer, db.ForeignKey('seller_profile.seller_id'), nullable=False)
+    seller = db.relationship('SellerProfile', backref=db.backref('products', lazy=True))
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Message(db.Model):
+    __tablename__ = 'messages'
+    
+    message_id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
+    
+    # For buyer (user) messages
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
+    user = db.relationship('User', backref=db.backref('sent_messages', lazy=True))
+    
+    # For recipient (seller)
+    seller_id = db.Column(db.Integer, db.ForeignKey('seller_profile.seller_id'), nullable=False)
+    seller = db.relationship('SellerProfile', backref=db.backref('received_messages', lazy=True))
+    
+    # Product reference (optional, if message is about a specific product)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.product_id'), nullable=True)
+    product = db.relationship('Product', backref=db.backref('messages', lazy=True))
+    
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

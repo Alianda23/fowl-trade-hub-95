@@ -61,20 +61,24 @@ const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
           >
             <ShoppingCart className="h-4 w-4" />
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => setShowMessageDialog(true)}
-          >
-            <MessageSquare className="h-4 w-4" />
-          </Button>
+          {product.sellerId && (
+            <Button
+              variant="outline"
+              onClick={() => setShowMessageDialog(true)}
+            >
+              <MessageSquare className="h-4 w-4" />
+            </Button>
+          )}
         </CardFooter>
       </Card>
-      <MessageDialog
-        open={showMessageDialog}
-        onOpenChange={setShowMessageDialog}
-        productName={product.name}
-        sellerId={product.sellerId || product.id} // Use specific sellerId if available, fallback to product.id
-      />
+      {product.sellerId && (
+        <MessageDialog
+          open={showMessageDialog}
+          onOpenChange={setShowMessageDialog}
+          productName={product.name}
+          sellerId={product.sellerId}
+        />
+      )}
     </>
   );
 };

@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from models import db, User, SellerProfile, AdminProfile, Product, Message
@@ -288,7 +287,7 @@ def get_seller_products():
         print(f"Error fetching seller products: {str(e)}")
         return jsonify({'success': False, 'message': f'Error fetching products: {str(e)}'})
 
-@app.route('/api/seller/products', methods=['POST'])
+@app.route('/api/products/create', methods=['POST'])
 def add_product():
     """Add a new product (seller only)"""
     # First check if seller is authenticated
@@ -299,19 +298,58 @@ def add_product():
         return jsonify({'success': False, 'message': 'Seller not authenticated'})
     
     try:
-        data = request.json
-        seller_id = auth_data.get('seller_id')
-        
-        # Create new product
-        new_product = Product(
-            name=data['name'],
-            description=data['description'],
-            price=float(data['price']),
-            stock=int(data['stock']),
-            category=data['category'],
-            image_url=data['image'],  # Frontend should upload image first and send URL
-            seller_id=seller_id
-        )
+        # Check if we have form data (multipart/form-data) or JSON
+        if request.form:
+            name = request.form.get('name')
+            description = request.form.get('description')
+            price = float(request.form.get('price', 0))
+            stock = int(request.form.get('stock', 0))
+            category = request.form.get('category')
+            seller_id = auth_data.get('seller_id')
+            
+            # Handle image upload
+            image_url = None
+            if 'image' in request.files:
+                file = request.files['image']
+                if file and file.filename != '':
+                    # Generate unique filename
+                    filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.filename}"
+                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    
+                    # Ensure directory exists
+                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                    
+                    # Save file
+                    file.save(file_path)
+                    
+                    # Generate URL
+                    image_url = f"/static/uploads/{filename}"
+            
+            # Create new product
+            new_product = Product(
+                name=name,
+                description=description,
+                price=price,
+                stock=stock,
+                category=category,
+                image_url=image_url,
+                seller_id=seller_id
+            )
+        else:
+            # Handle JSON data
+            data = request.json
+            seller_id = auth_data.get('seller_id')
+            
+            # Create new product
+            new_product = Product(
+                name=data['name'],
+                description=data['description'],
+                price=float(data['price']),
+                stock=int(data['stock']),
+                category=data['category'],
+                image_url=data.get('image'),  # Frontend should upload image first and send URL
+                seller_id=seller_id
+            )
         
         db.session.add(new_product)
         db.session.commit()

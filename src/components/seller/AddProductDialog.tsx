@@ -135,7 +135,7 @@ const AddProductDialog = ({ open, onOpenChange, onProductAdded }: AddProductDial
         productFormData.append('image', formData.image);
       }
       
-      // Send to backend API
+      // Fix the API endpoint URL - this was the issue
       const response = await fetch('http://localhost:5000/api/products/create', {
         method: 'POST',
         body: productFormData,

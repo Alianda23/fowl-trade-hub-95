@@ -93,12 +93,18 @@ const AdminLogin = () => {
           description: "Welcome to the admin dashboard!",
         });
         
-        // Store authentication state in localStorage
+        // Store admin profile data in localStorage
         localStorage.setItem('isAdminAuthenticated', 'true');
         localStorage.setItem('adminEmail', email);
+        localStorage.setItem('adminUsername', data.username || '');
+        localStorage.setItem('adminRole', data.role || 'general');
         
         if (data.admin_id) {
           localStorage.setItem('adminId', data.admin_id.toString());
+        }
+        
+        if (data.department) {
+          localStorage.setItem('adminDepartment', data.department);
         }
         
         // Force navigation to admin dashboard with replace to prevent back button issues
@@ -178,6 +184,7 @@ const AdminLogin = () => {
                   placeholder="••••••••"
                   required
                   disabled={isLoading}
+                  showPasswordToggle={true}
                 />
               </div>
               {errors.password && (

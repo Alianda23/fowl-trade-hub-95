@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { categories, productTypes } from "@/data/products";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface AddProductDialogProps {
   open: boolean;
@@ -18,7 +19,47 @@ interface AddProductDialogProps {
 
 const AddProductDialog = ({ open, onOpenChange }: AddProductDialogProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState(categories[0]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Check authentication when dialog opens
+    if (open) {
+      const checkAuth = async () => {
+        try {
+          const response = await fetch('http://localhost:5000/api/seller/check-auth', {
+            method: 'GET',
+            credentials: 'include'
+          });
+          
+          const data = await response.json();
+          
+          if (!data.isAuthenticated) {
+            toast({
+              title: "Authentication Required",
+              description: "Please sign in to add products",
+              variant: "destructive",
+            });
+            onOpenChange(false);
+            navigate('/seller/login');
+          } else {
+            setIsAuthenticated(true);
+          }
+        } catch (error) {
+          console.error("Auth check error:", error);
+          toast({
+            title: "Authentication Error",
+            description: "Please sign in again",
+            variant: "destructive",
+          });
+          onOpenChange(false);
+        }
+      };
+      
+      checkAuth();
+    }
+  }, [open, onOpenChange, toast, navigate]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -31,6 +72,17 @@ const AddProductDialog = ({ open, onOpenChange }: AddProductDialogProps) => {
         </DialogHeader>
         <form className="space-y-4" onSubmit={(e) => {
           e.preventDefault();
+          
+          if (!isAuthenticated) {
+            toast({
+              title: "Authentication Required",
+              description: "Please sign in to add products",
+              variant: "destructive",
+            });
+            onOpenChange(false);
+            return;
+          }
+          
           onOpenChange(false);
           toast({
             title: "Product Added",

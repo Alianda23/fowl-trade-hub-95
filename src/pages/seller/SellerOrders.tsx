@@ -51,26 +51,16 @@ const SellerOrders = () => {
           
           const data = await response.json();
           
-          if (data.authenticated && data.user_type === 'seller') {
+          if (data.isAuthenticated) {
             setIsAuthenticated(true);
           } else {
-            // If backend says not authenticated, clear localStorage and redirect
+            // If backend says not authenticated, clear localStorage
             localStorage.removeItem('isSellerAuthenticated');
             localStorage.removeItem('sellerEmail');
-            navigate('/seller/login');
           }
-        } else {
-          // No stored auth, redirect to login
-          navigate('/seller/login');
         }
       } catch (error) {
         console.error("Auth check error:", error);
-        toast({
-          title: "Authentication Error",
-          description: "Please log in again",
-          variant: "destructive",
-        });
-        navigate('/seller/login');
       } finally {
         setIsLoading(false);
       }
@@ -93,6 +83,15 @@ const SellerOrders = () => {
   ];
 
   const handleDispatch = (orderId: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to dispatch orders",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Here you would update the order status in your backend
     toast({
       title: "Order Dispatched",
@@ -101,6 +100,15 @@ const SellerOrders = () => {
   };
 
   const handleCancel = (orderId: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to cancel orders",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Here you would update the order status in your backend
     toast({
       title: "Order Cancelled",
@@ -131,10 +139,6 @@ const SellerOrders = () => {
     );
   }
 
-  if (!isAuthenticated) {
-    return null; // Will redirect in useEffect
-  }
-
   return (
     <div className="flex min-h-screen">
       <SellerSidebar />
@@ -149,6 +153,12 @@ const SellerOrders = () => {
             <h1 className="text-2xl font-bold">Orders</h1>
           </div>
           <p className="text-sm text-gray-600">Manage your customer orders</p>
+          
+          {!isAuthenticated && (
+            <div className="mt-4 rounded-md bg-yellow-50 p-3 text-yellow-800">
+              <p>Sign in to manage orders</p>
+            </div>
+          )}
         </div>
 
         <div className="p-6">
@@ -190,6 +200,7 @@ const SellerOrders = () => {
                                 size="sm"
                                 className="gap-1"
                                 onClick={() => handleDispatch(order.id)}
+                                disabled={!isAuthenticated}
                               >
                                 <Truck className="h-4 w-4" />
                                 Dispatch
@@ -199,11 +210,22 @@ const SellerOrders = () => {
                                 size="sm"
                                 className="gap-1 text-red-600 hover:bg-red-50"
                                 onClick={() => handleCancel(order.id)}
+                                disabled={!isAuthenticated}
                               >
                                 <XCircle className="h-4 w-4" />
                                 Cancel
                               </Button>
                             </>
+                          )}
+                          {!isAuthenticated && order.status === 'pending' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1"
+                              onClick={() => navigate('/seller/login')}
+                            >
+                              Sign In to Manage
+                            </Button>
                           )}
                         </div>
                       </TableCell>
@@ -211,6 +233,17 @@ const SellerOrders = () => {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+          
+          {!isAuthenticated && (
+            <div className="mt-8 rounded-lg border bg-sage-50 p-6 text-center">
+              <h3 className="mb-2 text-lg font-medium">Want to manage orders?</h3>
+              <p className="mb-4 text-gray-600">Sign in or create a seller account to manage orders</p>
+              <div className="flex justify-center gap-4">
+                <Button onClick={() => navigate('/seller/login')}>Sign In</Button>
+                <Button variant="outline" onClick={() => navigate('/seller/signup')}>Create Account</Button>
+              </div>
             </div>
           )}
         </div>

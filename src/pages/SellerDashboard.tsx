@@ -39,27 +39,22 @@ const SellerDashboard = () => {
           
           const data = await response.json();
           
-          if (data.authenticated && data.user_type === 'seller') {
+          if (data.isAuthenticated) {
             setIsAuthenticated(true);
             setSellerEmail(storedEmail);
           } else {
-            // If backend says not authenticated, clear localStorage and redirect
+            // If backend says not authenticated, clear localStorage
             localStorage.removeItem('isSellerAuthenticated');
             localStorage.removeItem('sellerEmail');
-            navigate('/seller/login');
           }
-        } else {
-          // No stored auth, redirect to login
-          navigate('/seller/login');
         }
       } catch (error) {
         console.error("Auth check error:", error);
         toast({
           title: "Authentication Error",
-          description: "Please log in again",
+          description: "Please log in to manage products",
           variant: "destructive",
         });
-        navigate('/seller/login');
       } finally {
         setIsLoading(false);
       }
@@ -79,8 +74,8 @@ const SellerDashboard = () => {
       localStorage.removeItem('isSellerAuthenticated');
       localStorage.removeItem('sellerEmail');
       
-      // Redirect to login
-      navigate('/seller/login');
+      setIsAuthenticated(false);
+      setSellerEmail(null);
       
       toast({
         title: "Logged out",
@@ -101,10 +96,6 @@ const SellerDashboard = () => {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
   }
 
-  if (!isAuthenticated) {
-    return null; // Will redirect in useEffect
-  }
-
   return (
     <div className="flex min-h-screen">
       <SellerSidebar />
@@ -123,22 +114,33 @@ const SellerDashboard = () => {
             <p className="text-sm text-gray-600">Manage your poultry products and orders</p>
           </div>
           <div className="flex items-center gap-4">
-            <Button 
-              className="bg-sage-600 hover:bg-sage-700"
-              onClick={() => setShowAddProduct(true)}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Product
-            </Button>
-            <Button variant="ghost" onClick={() => setShowMessages(true)}>
-              <MessageSquare className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">{sellerEmail}</span>
-              <Button variant="ghost" onClick={handleLogout}>
-                Logout
+            {isAuthenticated ? (
+              <>
+                <Button 
+                  className="bg-sage-600 hover:bg-sage-700"
+                  onClick={() => setShowAddProduct(true)}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Product
+                </Button>
+                <Button variant="ghost" onClick={() => setShowMessages(true)}>
+                  <MessageSquare className="h-5 w-5" />
+                </Button>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">{sellerEmail}</span>
+                  <Button variant="ghost" onClick={handleLogout}>
+                    Logout
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <Button
+                className="bg-sage-600 hover:bg-sage-700"
+                onClick={() => navigate('/seller/login')}
+              >
+                Sign In
               </Button>
-            </div>
+            )}
           </div>
         </div>
 
@@ -160,18 +162,33 @@ const SellerDashboard = () => {
           </div>
 
           <ProductList products={products} />
+          
+          {!isAuthenticated && (
+            <div className="mt-8 rounded-lg border bg-sage-50 p-6 text-center">
+              <h3 className="mb-2 text-lg font-medium">Want to sell your products?</h3>
+              <p className="mb-4 text-gray-600">Sign in or create a seller account to add and manage products</p>
+              <div className="flex justify-center gap-4">
+                <Button onClick={() => navigate('/seller/login')}>Sign In</Button>
+                <Button variant="outline" onClick={() => navigate('/seller/signup')}>Create Account</Button>
+              </div>
+            </div>
+          )}
         </div>
       </main>
 
-      <AddProductDialog 
-        open={showAddProduct} 
-        onOpenChange={setShowAddProduct} 
-      />
+      {isAuthenticated && (
+        <>
+          <AddProductDialog 
+            open={showAddProduct} 
+            onOpenChange={setShowAddProduct} 
+          />
 
-      <MessagesDialog 
-        open={showMessages} 
-        onOpenChange={setShowMessages} 
-      />
+          <MessagesDialog 
+            open={showMessages} 
+            onOpenChange={setShowMessages} 
+          />
+        </>
+      )}
     </div>
   );
 };

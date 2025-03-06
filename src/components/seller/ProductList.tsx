@@ -34,15 +34,15 @@ const ProductList = ({ products, onRefresh }: ProductListProps) => {
         } else {
           toast({
             title: "Error",
-            description: data.message || "Failed to delete product",
+            description: data.message || "Failed to delete product. Database might need updating.",
             variant: "destructive",
           });
         }
       } catch (error) {
         console.error("Error deleting product:", error);
         toast({
-          title: "Error",
-          description: "Failed to connect to server",
+          title: "Database Error",
+          description: "There was a problem with the database. Please run the db_update.py script to update your database schema.",
           variant: "destructive",
         });
       }

@@ -64,6 +64,11 @@ const ProductDetails = () => {
       </div>
     );
   }
+  
+  // Fix image URL if it starts with /static
+  const imageUrl = product.image?.startsWith('/static') 
+    ? `http://localhost:5000${product.image}` 
+    : product.image;
 
   const handleAddToCart = () => {
     // Get existing cart from localStorage
@@ -120,7 +125,7 @@ const ProductDetails = () => {
       <div className="grid gap-8 md:grid-cols-2">
         <div>
           <img
-            src={product.image}
+            src={imageUrl}
             alt={product.name}
             className="w-full rounded-lg object-cover"
           />

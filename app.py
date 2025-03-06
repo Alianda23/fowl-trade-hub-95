@@ -440,16 +440,9 @@ def delete_product(product_id):
 @app.route('/api/messages/send', methods=['POST'])
 def send_message():
     """Send a message to a seller"""
-    # Check if user is authenticated
-    auth_check = check_auth()
-    auth_data = auth_check.get_json()
-    
-    if not auth_data.get('isAuthenticated'):
-        return jsonify({'success': False, 'message': 'User not authenticated'})
+    data = request.json
     
     try:
-        data = request.json
-        
         # Validate seller exists
         seller = SellerProfile.query.get(data['sellerId'])
         if not seller:
@@ -458,9 +451,11 @@ def send_message():
         # Create new message
         new_message = Message(
             content=data['content'],
-            user_id=auth_data.get('user_id'),
-            seller_id=data['sellerId'],
-            product_id=data.get('productId')  # Optional
+            user_id=None,  # Anonymous message is okay
+            seller_id=int(data['sellerId']),
+            senderName=data.get('senderName', 'Anonymous'),
+            senderEmail=data.get('senderEmail', 'no-email@example.com'),
+            productName=data.get('productName', 'Unknown Product')
         )
         
         db.session.add(new_message)
@@ -493,27 +488,12 @@ def get_seller_messages():
         message_list = []
         
         for msg in messages:
-            # Get user info if available
-            username = "Anonymous"
-            if msg.user_id:
-                user = User.query.get(msg.user_id)
-                if user:
-                    username = user.username
-            
-            # Get product info if available
-            product_name = None
-            if msg.product_id:
-                product = Product.query.get(msg.product_id)
-                if product:
-                    product_name = product.name
-            
             message_list.append({
-                'id': msg.message_id,
-                'content': msg.content,
-                'username': username,
-                'userId': msg.user_id,
-                'productId': msg.product_id,
-                'productName': product_name,
+                'id': str(msg.message_id),
+                'senderName': msg.senderName,
+                'senderEmail': msg.senderEmail,
+                'message': msg.content,
+                'productName': msg.productName,
                 'isRead': msg.is_read,
                 'createdAt': msg.created_at.isoformat()
             })
@@ -560,6 +540,87 @@ def mark_message_read(message_id):
         db.session.rollback()
         print(f"Error marking message as read: {str(e)}")
         return jsonify({'success': False, 'message': f'Error marking message as read: {str(e)}'})
+
+# Admin Endpoints
+@app.route('/api/admin/users', methods=['GET'])
+def get_all_users():
+    """Get all users (admin only)"""
+    # First check if admin is authenticated
+    auth_check = check_admin_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Admin not authenticated'})
+    
+    try:
+        # Get all buyers
+        buyers = User.query.all()
+        buyer_list = []
+        
+        for user in buyers:
+            buyer_list.append({
+                'user_id': user.user_id,
+                'username': user.username,
+                'email': user.email,
+                'phone_number': user.phone_number,
+                'created_at': user.created_at.isoformat()
+            })
+        
+        # Get all sellers
+        sellers = SellerProfile.query.all()
+        seller_list = []
+        
+        for seller in sellers:
+            seller_list.append({
+                'seller_id': seller.seller_id,
+                'username': seller.username,
+                'email': seller.email,
+                'business_name': seller.business_name,
+                'approval_status': seller.approval_status,
+                'phone_number': seller.phone_number,
+                'created_at': seller.created_at.isoformat()
+            })
+        
+        return jsonify({
+            'success': True,
+            'users': buyer_list,
+            'sellers': seller_list
+        })
+    
+    except Exception as e:
+        print(f"Error fetching users: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error fetching users: {str(e)}'})
+
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    # Clear the session
+    session.clear()
+    return jsonify({'success': True, 'message': 'Logged out successfully'})
+
+# For testing without authentication
+@app.route('/api/test/users', methods=['GET'])
+def test_get_users():
+    """Test endpoint to get users without authentication"""
+    try:
+        users = User.query.all()
+        user_list = []
+        
+        for user in users:
+            user_list.append({
+                'user_id': user.user_id,
+                'username': user.username,
+                'email': user.email,
+                'created_at': user.created_at.isoformat()
+            })
+        
+        return jsonify({
+            'success': True,
+            'users': user_list
+        })
+    
+    except Exception as e:
+        print(f"Error fetching test users: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -39,7 +39,7 @@ const MessageDialog = ({ open, onOpenChange, productName, sellerId }: MessageDia
         body: JSON.stringify({
           senderName: name,
           senderEmail: email,
-          message,
+          content: message,
           productName,
           sellerId
         })

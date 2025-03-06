@@ -22,7 +22,18 @@ const ProductsSection = ({ searchQuery, onAddToCart }: ProductsSectionProps) => 
         const data = await response.json();
         
         if (data.success) {
-          setProducts(data.products);
+          // Process images in products
+          const processedProducts = data.products.map((product: any) => {
+            if (product.image && product.image.startsWith('/static')) {
+              return {
+                ...product,
+                image: `http://localhost:5000${product.image}`
+              };
+            }
+            return product;
+          });
+          
+          setProducts(processedProducts);
         } else {
           // Fallback to sample products if API fails
           setProducts(sampleProducts);

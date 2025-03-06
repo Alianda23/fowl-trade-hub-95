@@ -65,7 +65,12 @@ class Message(db.Model):
     message_id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
     
-    # For buyer (user) messages
+    # For non-authenticated sender info
+    senderName = db.Column(db.String(100), nullable=True)
+    senderEmail = db.Column(db.String(100), nullable=True)
+    productName = db.Column(db.String(255), nullable=True)
+    
+    # For buyer (user) messages - now optional
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
     user = db.relationship('User', backref=db.backref('sent_messages', lazy=True))
     

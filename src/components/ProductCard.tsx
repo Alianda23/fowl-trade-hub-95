@@ -22,6 +22,11 @@ interface ProductCardProps {
 const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
   const navigate = useNavigate();
   const [showMessageDialog, setShowMessageDialog] = useState(false);
+  
+  // Fix image URL if it starts with /static
+  const imageUrl = product.image?.startsWith('/static') 
+    ? `http://localhost:5000${product.image}` 
+    : product.image;
 
   return (
     <>
@@ -29,7 +34,7 @@ const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
         <CardHeader className="p-0">
           <div className="aspect-square w-full overflow-hidden">
             <img
-              src={product.image}
+              src={imageUrl}
               alt={product.name}
               className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
             />

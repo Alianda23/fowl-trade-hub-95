@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from models import db, User, SellerProfile, AdminProfile, Product, Message
@@ -590,12 +591,6 @@ def get_all_users():
     except Exception as e:
         print(f"Error fetching users: {str(e)}")
         return jsonify({'success': False, 'message': f'Error fetching users: {str(e)}'})
-
-@app.route('/api/logout', methods=['POST'])
-def logout():
-    # Clear the session
-    session.clear()
-    return jsonify({'success': True, 'message': 'Logged out successfully'})
 
 # For testing without authentication
 @app.route('/api/test/users', methods=['GET'])

@@ -25,6 +25,15 @@ const CartSidebar = ({
   const navigate = useNavigate();
   const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 
+  const handleCheckout = () => {
+    // Store cart info in sessionStorage for checkout page
+    sessionStorage.setItem('cartTotal', cartTotal.toString());
+    sessionStorage.setItem('cartItems', JSON.stringify(cart));
+    
+    setShowCart(false);
+    navigate('/checkout');
+  };
+
   return (
     <div className={`fixed right-0 top-0 z-50 h-full w-96 transform bg-white p-6 shadow-lg transition-transform duration-300 ${showCart ? 'translate-x-0' : 'translate-x-full'}`}>
       <div className="flex h-full flex-col">
@@ -43,10 +52,7 @@ const CartSidebar = ({
             </div>
             <Button 
               className="mb-4 w-full bg-sage-600 hover:bg-sage-700 text-white font-bold"
-              onClick={() => {
-                setShowCart(false);
-                navigate('/checkout');
-              }}
+              onClick={handleCheckout}
             >
               Proceed to Checkout
             </Button>

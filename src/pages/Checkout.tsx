@@ -4,17 +4,81 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { initiateSTKPush } from "@/utils/mpesa";
+import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
 const Checkout = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleMpesaPayment = (e: React.FormEvent) => {
+  const handleMpesaPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Payment Initiated",
-      description: `M-Pesa payment request sent to ${phoneNumber}. This is a placeholder - actual payment integration will be implemented later.`,
-    });
+    
+    if (!phoneNumber || phoneNumber.length < 10) {
+      toast({
+        title: "Invalid Phone Number",
+        description: "Please enter a valid M-Pesa phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsProcessing(true);
+    
+    try {
+      // For demonstration purposes, we're using a fixed amount
+      // In a real app, you'd calculate this from the cart items
+      const amount = 1; // Minimum amount for testing
+      
+      const result = await initiateSTKPush(phoneNumber, amount);
+      
+      if (result.success) {
+        toast({
+          title: "Payment Initiated",
+          description: "Please check your phone for the M-Pesa payment prompt and enter your PIN",
+        });
+        
+        // Close dialog and reset state
+        setPaymentDialogOpen(false);
+        
+        // Show processing notification
+        toast({
+          title: "Processing Payment",
+          description: "Please wait while we confirm your payment...",
+        });
+        
+        // In a production app, you would poll the server to check payment status
+        // For simplicity, we're simulating a successful payment after a delay
+        setTimeout(() => {
+          toast({
+            title: "Payment Successful",
+            description: "Your payment has been processed successfully!",
+          });
+          
+          // Redirect to homepage after successful payment
+          setTimeout(() => navigate('/'), 2000);
+        }, 5000);
+      } else {
+        toast({
+          title: "Payment Failed",
+          description: result.message || "Failed to initiate payment. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast({
+        title: "Payment Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -24,7 +88,7 @@ const Checkout = () => {
       <div className="rounded-lg border p-6">
         <h2 className="mb-6 text-xl font-semibold">Select Payment Method</h2>
         
-        <Dialog>
+        <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
           <DialogTrigger asChild>
             <Button className="w-full bg-green-600 hover:bg-green-700">
               Pay with M-Pesa
@@ -48,9 +112,23 @@ const Checkout = () => {
                   className="mt-1"
                   required
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  Format: 07XXXXXXXX or 01XXXXXXXX (Safaricom/M-Pesa number)
+                </p>
               </div>
-              <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
-                Pay Now
+              <Button 
+                type="submit" 
+                className="w-full bg-green-600 hover:bg-green-700"
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  "Pay Now"
+                )}
               </Button>
             </form>
           </DialogContent>

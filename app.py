@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from models import db, User, SellerProfile, AdminProfile, Product, Message
@@ -6,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
 from app_auth import check_admin_auth, check_seller_auth
+from src.routes.mpesa import mpesa_routes
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/kukuhub'
@@ -20,6 +20,9 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 CORS(app, supports_credentials=True)
 db.init_app(app)
+
+# Register blueprints
+app.register_blueprint(mpesa_routes, url_prefix='/api/mpesa')
 
 @app.route('/api/register', methods=['POST'])
 def register():

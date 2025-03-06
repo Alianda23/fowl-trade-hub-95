@@ -23,9 +23,10 @@ interface Message {
 interface MessagesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onMessagesLoaded?: (count: number) => void;
 }
 
-const MessagesDialog = ({ open, onOpenChange }: MessagesDialogProps) => {
+const MessagesDialog = ({ open, onOpenChange, onMessagesLoaded }: MessagesDialogProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -49,6 +50,11 @@ const MessagesDialog = ({ open, onOpenChange }: MessagesDialogProps) => {
       
       if (data.success) {
         setMessages(data.messages || []);
+        // Count unread messages and pass to parent
+        const unreadCount = (data.messages || []).filter((msg: Message) => !msg.isRead).length;
+        if (onMessagesLoaded) {
+          onMessagesLoaded(unreadCount);
+        }
       } else {
         toast({
           title: "Error",
@@ -84,6 +90,15 @@ const MessagesDialog = ({ open, onOpenChange }: MessagesDialogProps) => {
             msg.id === messageId ? { ...msg, isRead: true } : msg
           )
         );
+        
+        // Recalculate unread count
+        const updatedMessages = messages.map(msg => 
+          msg.id === messageId ? { ...msg, isRead: true } : msg
+        );
+        const unreadCount = updatedMessages.filter(msg => !msg.isRead).length;
+        if (onMessagesLoaded) {
+          onMessagesLoaded(unreadCount);
+        }
       }
     } catch (error) {
       console.error("Error marking message as read:", error);

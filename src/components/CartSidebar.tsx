@@ -33,6 +33,14 @@ const CartSidebar = ({
     setShowCart(false);
     navigate('/checkout');
   };
+  
+  // Fix image URL if it starts with /static
+  const getImageUrl = (imagePath: string) => {
+    if (imagePath?.startsWith('/static')) {
+      return `http://localhost:5000${imagePath}`;
+    }
+    return imagePath;
+  };
 
   return (
     <div className={`fixed right-0 top-0 z-50 h-full w-96 transform bg-white p-6 shadow-lg transition-transform duration-300 ${showCart ? 'translate-x-0' : 'translate-x-full'}`}>
@@ -59,7 +67,7 @@ const CartSidebar = ({
             <div className="flex-1 space-y-4 overflow-auto">
               {cart.map(item => (
                 <div key={item.id} className="flex gap-4 border-b pb-4">
-                  <img src={item.image} alt={item.name} className="h-20 w-20 rounded-lg object-cover" />
+                  <img src={getImageUrl(item.image)} alt={item.name} className="h-20 w-20 rounded-lg object-cover" />
                   <div className="flex flex-1 flex-col">
                     <h3 className="font-semibold">{item.name}</h3>
                     <p className="text-sm text-gray-600">KShs {item.price.toLocaleString()}</p>

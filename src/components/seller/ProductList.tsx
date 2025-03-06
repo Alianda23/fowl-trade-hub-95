@@ -12,6 +12,14 @@ interface ProductListProps {
 const ProductList = ({ products, onRefresh }: ProductListProps) => {
   const { toast } = useToast();
   
+  // Fix image URL if it starts with /static
+  const getImageUrl = (imagePath: string) => {
+    if (imagePath?.startsWith('/static')) {
+      return `http://localhost:5000${imagePath}`;
+    }
+    return imagePath;
+  };
+  
   const handleDeleteProduct = async (productId: string) => {
     if (confirm("Are you sure you want to delete this product?")) {
       try {
@@ -62,7 +70,7 @@ const ProductList = ({ products, onRefresh }: ProductListProps) => {
             <div key={product.id} className="flex items-center justify-between rounded-lg border bg-white p-4">
               <div className="flex items-center gap-4">
                 <img 
-                  src={product.image} 
+                  src={getImageUrl(product.image)} 
                   alt={product.name}
                   className="h-16 w-16 rounded-lg object-cover" 
                 />

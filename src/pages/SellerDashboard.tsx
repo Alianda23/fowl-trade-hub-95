@@ -19,6 +19,7 @@ const SellerDashboard = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sellerEmail, setSellerEmail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [messageCount, setMessageCount] = useState(0);
 
   const fetchProducts = async () => {
     try {
@@ -42,12 +43,36 @@ const SellerDashboard = () => {
         if (productsData.success) {
           setProducts(productsData.products || []);
         }
+        
+        // Fetch unread message count
+        fetchMessageCount();
       }
     } catch (error) {
       console.error("Error fetching products:", error);
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  const fetchMessageCount = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/seller/messages/count', {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setMessageCount(data.count || 0);
+      }
+    } catch (error) {
+      console.error("Error fetching message count:", error);
+    }
+  };
+
+  const handleMessagesLoaded = (count: number) => {
+    setMessageCount(count);
   };
 
   useEffect(() => {
@@ -120,7 +145,7 @@ const SellerDashboard = () => {
   const stats = {
     totalProducts: products.length || 0,
     totalOrders: 0,
-    messages: 0
+    messages: messageCount
   };
 
   if (isLoading) {
@@ -154,8 +179,13 @@ const SellerDashboard = () => {
                   <Plus className="mr-2 h-4 w-4" />
                   Add Product
                 </Button>
-                <Button variant="ghost" onClick={() => setShowMessages(true)}>
+                <Button variant="ghost" onClick={() => setShowMessages(true)} className="relative">
                   <MessageSquare className="h-5 w-5" />
+                  {messageCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                      {messageCount}
+                    </span>
+                  )}
                 </Button>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-600">{sellerEmail}</span>
@@ -218,6 +248,7 @@ const SellerDashboard = () => {
           <MessagesDialog 
             open={showMessages} 
             onOpenChange={setShowMessages} 
+            onMessagesLoaded={handleMessagesLoaded}
           />
         </>
       )}

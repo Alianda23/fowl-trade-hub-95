@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
@@ -20,8 +21,17 @@ import Orders from "@/pages/admin/Orders";
 import Users from "@/pages/admin/Users";
 import AdminProfile from "@/pages/admin/AdminProfile";
 
+// Import missing components
+import Header from "@/components/Header";
+import CartSidebar from "@/components/CartSidebar";
+import OrdersSidebar from "@/components/OrdersSidebar";
+
+// Import Product type from data/products
+import { Product } from "@/data/products";
+
 import "./App.css";
 
+// Define CartItem interface properly
 interface CartItem extends Product {
   quantity: number;
 }
@@ -56,17 +66,18 @@ function App() {
   const handleAddToCart = (product: Product) => {
     const existingItem = cart.find(item => item.id === product.id);
     if (existingItem) {
-      existingItem.quantity += 1;
+      // Update the cart array with the new quantity for the existing item
+      setCart(cart.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
     } else {
       setCart([...cart, { ...product, quantity: 1 }]);
     }
   };
 
-  const updateCartItemQuantity = (productId: number, newQuantity: number) => {
+  const updateCartItemQuantity = (productId: string, newQuantity: number) => {
     setCart(cart.map(item => item.id === productId ? { ...item, quantity: newQuantity } : item));
   };
 
-  const removeFromCart = (productId: number) => {
+  const removeFromCart = (productId: string) => {
     setCart(cart.filter(item => item.id !== productId));
   };
 

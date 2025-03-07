@@ -1,4 +1,3 @@
-
 from flask import Blueprint, request, jsonify
 import requests
 import base64
@@ -8,8 +7,8 @@ import json
 mpesa_routes = Blueprint('mpesa', __name__)
 
 # M-Pesa API credentials
-CONSUMER_KEY = "your_consumer_key"
-CONSUMER_SECRET = "your_consumer_secret"
+CONSUMER_KEY = "eUb7fiTHhwdNdiAcNgAoJlziG7sZRfnyBu6eBENXS2OqyLGh"
+CONSUMER_SECRET = "LSk070XeJmvHg1OIg39Bl3QgeBCEMM3XMgrKVZDGt5S96wFsTnVJqn2kGyRAO10h"
 BUSINESS_SHORT_CODE = "174379"  # Lipa Na M-Pesa shortcode
 PASSKEY = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"  # Lipa Na M-Pesa passkey
 CALLBACK_URL = "https://mydomain.com/callback"  # Replace with your callback URL

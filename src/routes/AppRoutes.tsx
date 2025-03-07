@@ -29,7 +29,6 @@ import Layout from "@/components/Layout";
 const AppRoutes = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { addToCart } = useCart();
-  const { setIsAuthenticated, setUserEmail } = useAuth();
 
   return (
     <Routes>
@@ -54,10 +53,7 @@ const AppRoutes = () => {
             searchQuery={searchQuery} 
             setSearchQuery={setSearchQuery}
           >
-            <Login
-              setIsAuthenticated={setIsAuthenticated}
-              setUserEmail={setUserEmail}
-            />
+            <Login />
           </Layout>
         }
       />

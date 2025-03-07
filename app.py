@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
 from app_auth import check_admin_auth, check_seller_auth
-from src.routes.mpesa import mpesa_routes
+from routes.mpesa import mpesa_routes
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/kukuhub'

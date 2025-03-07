@@ -620,5 +620,28 @@ def test_get_users():
         print(f"Error fetching test users: {str(e)}")
         return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
+@app.route('/api/seller/messages/count', methods=['GET'])
+def get_seller_message_count():
+    """Get count of unread messages for the authenticated seller"""
+    # Check if seller is authenticated
+    auth_check = check_seller_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Seller not authenticated'})
+    
+    try:
+        seller_id = auth_data.get('seller_id')
+        unread_count = Message.query.filter_by(seller_id=seller_id, is_read=False).count()
+        
+        return jsonify({
+            'success': True,
+            'count': unread_count
+        })
+    
+    except Exception as e:
+        print(f"Error fetching message count: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error fetching message count: {str(e)}'})
+
 if __name__ == '__main__':
     app.run(debug=True)

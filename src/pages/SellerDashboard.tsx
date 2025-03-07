@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { Product } from "@/data/products";
-import { Plus, MessageSquare, ArrowLeft } from "lucide-react";
+import { Plus, MessageSquare, ArrowLeft, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import SellerSidebar from "@/components/seller/SellerSidebar";
 import ProductList from "@/components/seller/ProductList";
@@ -186,6 +186,14 @@ const SellerDashboard = () => {
                       {messageCount}
                     </span>
                   )}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="gap-2"
+                  onClick={() => navigate('/seller/profile')}
+                >
+                  <User className="h-5 w-5" />
+                  Profile
                 </Button>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-600">{sellerEmail}</span>

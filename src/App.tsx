@@ -108,9 +108,7 @@ function App() {
                 />
                 <Index
                   searchQuery={searchQuery}
-                  products={products}
-                  loading={loading}
-                  handleAddToCart={handleAddToCart}
+                  onAddToCart={handleAddToCart}
                 />
               </>
             }
@@ -171,7 +169,7 @@ function App() {
                   userEmail={userEmail}
                   handleLogout={handleLogout}
                 />
-                <ProductDetails handleAddToCart={handleAddToCart} />
+                <ProductDetails />
               </>
             }
           />

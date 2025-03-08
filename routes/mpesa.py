@@ -1,8 +1,10 @@
+
 from flask import Blueprint, request, jsonify
 import requests
 import base64
 from datetime import datetime
 import json
+import socket
 
 mpesa_routes = Blueprint('mpesa', __name__)
 
@@ -12,6 +14,11 @@ CONSUMER_SECRET = "LSk070XeJmvHg1OIg39Bl3QgeBCEMM3XMgrKVZDGt5S96wFsTnVJqn2kGyRAO
 BUSINESS_SHORT_CODE = "174379"  # Lipa Na M-Pesa shortcode
 PASSKEY = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"  # Lipa Na M-Pesa passkey
 CALLBACK_URL = "http://localhost:5000/api/mpesa/callback"  # Local development callback URL
+
+# M-Pesa API endpoints
+API_BASE_URL = "https://sandbox.safaricom.co.ke"
+AUTH_ENDPOINT = "/oauth/v1/generate"
+STK_PUSH_ENDPOINT = "/mpesa/stkpush/v1/processrequest"
 
 # Store transaction details in memory (in a real app, you'd use a database)
 TRANSACTIONS = {}
@@ -29,13 +36,30 @@ def initiate_stk_push():
                 'message': 'Phone number is required'
             }), 400
         
-        # Get access token
-        access_token = get_access_token()
-        if not access_token:
+        # Check internet connectivity first
+        if not check_internet_connection():
             return jsonify({
                 'success': False,
-                'message': 'Failed to authenticate with M-Pesa'
+                'message': 'No internet connection. Please check your network and try again.'
+            }), 503
+        
+        # Check if M-Pesa API is reachable
+        if not is_mpesa_api_reachable():
+            return jsonify({
+                'success': False,
+                'message': 'Unable to reach M-Pesa API. Please try again later.'
+            }), 503
+        
+        # Get access token
+        access_token_result = get_access_token()
+        if 'error' in access_token_result:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to authenticate with M-Pesa',
+                'details': access_token_result['error']
             }), 500
+        
+        access_token = access_token_result['access_token']
         
         # Prepare timestamp
         timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
@@ -59,38 +83,53 @@ def initiate_stk_push():
         }
         
         # Make request to M-Pesa API
-        response = requests.post(
-            "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
-            json=stk_request,
-            headers={
-                "Authorization": f"Bearer {access_token}",
-                "Content-Type": "application/json"
-            }
-        )
-        
-        mpesa_response = response.json()
-        
-        if 'ResponseCode' in mpesa_response and mpesa_response['ResponseCode'] == '0':
-            # Success - store transaction
-            checkout_request_id = mpesa_response['CheckoutRequestID']
-            TRANSACTIONS[checkout_request_id] = {
-                'amount': amount,
-                'phone_number': phone_number,
-                'status': 'pending',
-                'timestamp': datetime.now().isoformat()
-            }
+        try:
+            response = requests.post(
+                f"{API_BASE_URL}{STK_PUSH_ENDPOINT}",
+                json=stk_request,
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Content-Type": "application/json"
+                },
+                timeout=30  # Add timeout to prevent indefinite waiting
+            )
             
-            return jsonify({
-                'success': True,
-                'message': 'STK push sent successfully',
-                'checkoutRequestID': checkout_request_id
-            })
-        else:
+            if response.status_code != 200:
+                return jsonify({
+                    'success': False,
+                    'message': f'M-Pesa API returned status code {response.status_code}',
+                    'details': response.text
+                }), 400
+                
+            mpesa_response = response.json()
+            
+            if 'ResponseCode' in mpesa_response and mpesa_response['ResponseCode'] == '0':
+                # Success - store transaction
+                checkout_request_id = mpesa_response['CheckoutRequestID']
+                TRANSACTIONS[checkout_request_id] = {
+                    'amount': amount,
+                    'phone_number': phone_number,
+                    'status': 'pending',
+                    'timestamp': datetime.now().isoformat()
+                }
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'STK push sent successfully',
+                    'checkoutRequestID': checkout_request_id
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': 'Failed to initiate STK push',
+                    'details': mpesa_response
+                }), 400
+        except requests.exceptions.RequestException as e:
             return jsonify({
                 'success': False,
-                'message': 'Failed to initiate STK push',
-                'details': mpesa_response
-            }), 400
+                'message': 'Error sending STK push request',
+                'details': str(e)
+            }), 500
             
     except Exception as e:
         print(f"STK push error: {str(e)}")
@@ -154,14 +193,52 @@ def get_access_token():
         credentials = base64.b64encode(f"{CONSUMER_KEY}:{CONSUMER_SECRET}".encode()).decode('utf-8')
         
         response = requests.get(
-            "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
+            f"{API_BASE_URL}{AUTH_ENDPOINT}?grant_type=client_credentials",
             headers={
                 "Authorization": f"Basic {credentials}"
-            }
+            },
+            timeout=30  # Add timeout to prevent indefinite waiting
         )
         
+        if response.status_code != 200:
+            return {
+                'error': f"API returned status code {response.status_code}: {response.text}"
+            }
+            
         data = response.json()
-        return data.get('access_token')
-    except Exception as e:
+        if 'access_token' not in data:
+            return {
+                'error': f"No access token in response: {data}"
+            }
+            
+        return {'access_token': data.get('access_token')}
+    except requests.exceptions.ConnectionError as e:
+        print(f"Connection error: {str(e)}")
+        return {'error': f"Connection error: {str(e)}"}
+    except requests.exceptions.Timeout as e:
+        print(f"Request timed out: {str(e)}")
+        return {'error': f"Request timed out: {str(e)}"}
+    except requests.exceptions.RequestException as e:
         print(f"Error getting access token: {str(e)}")
-        return None
+        return {'error': f"Request error: {str(e)}"}
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+        return {'error': f"Unexpected error: {str(e)}"}
+
+def check_internet_connection():
+    """Check if internet connection is available"""
+    try:
+        # Try to connect to Google's DNS server
+        socket.create_connection(("8.8.8.8", 53), timeout=3)
+        return True
+    except OSError:
+        return False
+
+def is_mpesa_api_reachable():
+    """Check if M-Pesa API is reachable"""
+    try:
+        # Try to connect to the M-Pesa API host
+        socket.gethostbyname("sandbox.safaricom.co.ke")
+        return True
+    except socket.gaierror:
+        return False

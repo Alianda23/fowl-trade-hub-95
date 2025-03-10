@@ -12,6 +12,7 @@ export const initiateSTKPush = async (phoneNumber: string, amount: number): Prom
   success: boolean;
   message: string;
   checkoutRequestID?: string;
+  error?: any;
 }> => {
   try {
     // Format phone number - ensure it starts with 254
@@ -19,6 +20,8 @@ export const initiateSTKPush = async (phoneNumber: string, amount: number): Prom
     if (phoneNumber.startsWith('0')) {
       formattedPhone = '254' + phoneNumber.substring(1);
     }
+    
+    console.log(`Initiating STK push to ${formattedPhone} for amount ${amount}`);
     
     // Call backend endpoint to initiate STK push
     const response = await fetch('http://localhost:5000/api/mpesa/stkpush', {
@@ -34,6 +37,15 @@ export const initiateSTKPush = async (phoneNumber: string, amount: number): Prom
     });
     
     const data = await response.json();
+    console.log('M-Pesa API response:', data);
+    
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data.message || `Request failed with status ${response.status}`,
+        error: data
+      };
+    }
     
     return {
       success: data.success,
@@ -44,7 +56,8 @@ export const initiateSTKPush = async (phoneNumber: string, amount: number): Prom
     console.error('M-Pesa STK push error:', error);
     return {
       success: false,
-      message: 'Failed to initiate payment. Please try again.'
+      message: 'Failed to initiate payment. Please try again.',
+      error: error
     };
   }
 };

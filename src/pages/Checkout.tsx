@@ -34,6 +34,11 @@ const Checkout = () => {
       // In a real app, you'd calculate this from the cart items
       const amount = 1; // Minimum amount for testing
       
+      toast({
+        title: "Processing",
+        description: "Connecting to M-Pesa...",
+      });
+      
       const result = await initiateSTKPush(phoneNumber, amount);
       
       if (result.success) {
@@ -63,9 +68,15 @@ const Checkout = () => {
           setTimeout(() => navigate('/'), 2000);
         }, 5000);
       } else {
+        let errorMsg = result.message;
+        if (result.error && typeof result.error === 'object') {
+          // Try to extract more detailed error info if available
+          errorMsg += result.error.details ? `: ${result.error.details}` : '';
+        }
+        
         toast({
           title: "Payment Failed",
-          description: result.message || "Failed to initiate payment. Please try again.",
+          description: errorMsg || "Failed to initiate payment. Please try again.",
           variant: "destructive",
         });
       }

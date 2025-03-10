@@ -12,12 +12,23 @@ interface DashboardStat {
   route: string;
 }
 
+interface DashboardStats {
+  products: number;
+  users: number;
+  orders: number;
+}
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminEmail, setAdminEmail] = useState<string | null>(null);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
+    products: 0,
+    users: 0,
+    orders: 0
+  });
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -32,6 +43,9 @@ const AdminDashboard = () => {
         if (data.isAuthenticated) {
           setIsAuthenticated(true);
           setAdminEmail(data.email);
+          
+          // Once authenticated, fetch dashboard stats
+          fetchDashboardStats();
         } else {
           // If not authenticated, redirect to login
           navigate('/admin/login');
@@ -50,6 +64,38 @@ const AdminDashboard = () => {
 
     checkAuth();
   }, [navigate, toast]);
+  
+  const fetchDashboardStats = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/admin/dashboard-stats', {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard statistics');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setDashboardStats({
+          products: data.stats.products || 0,
+          users: data.stats.users || 0,
+          orders: data.stats.orders || 0
+        });
+      } else {
+        throw new Error(data.message || 'Failed to fetch dashboard statistics');
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard statistics.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -77,19 +123,19 @@ const AdminDashboard = () => {
   const stats: DashboardStat[] = [
     {
       label: "Total Products",
-      value: 245,
+      value: dashboardStats.products,
       icon: <ShoppingCart className="h-6 w-6" />,
       route: "/admin/products",
     },
     {
       label: "Total Users",
-      value: 120,
+      value: dashboardStats.users,
       icon: <Users className="h-6 w-6" />,
       route: "/admin/users",
     },
     {
       label: "Total Orders",
-      value: 78,
+      value: dashboardStats.orders,
       icon: <Package2 className="h-6 w-6" />,
       route: "/admin/orders",
     },

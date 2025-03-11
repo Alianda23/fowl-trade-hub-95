@@ -1,5 +1,6 @@
 
 import { createContext, useState, useContext, useEffect, ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 
 // Define the shape of our context
 interface AuthContextType {
@@ -10,7 +11,9 @@ interface AuthContextType {
   handleLogout: () => void;
   // Add seller and admin authentication states
   isSellerAuthenticated: boolean;
+  setIsSellerAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
   isAdminAuthenticated: boolean;
+  setIsAdminAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 // Create the context with a default value
@@ -61,7 +64,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUserEmail,
     handleLogout,
     isSellerAuthenticated,
-    isAdminAuthenticated
+    setIsSellerAuthenticated,
+    isAdminAuthenticated,
+    setIsAdminAuthenticated
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

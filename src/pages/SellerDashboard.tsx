@@ -8,6 +8,7 @@ import ProductList from "@/components/seller/ProductList";
 import AddProductDialog from "@/components/seller/AddProductDialog";
 import MessagesDialog from "@/components/seller/MessagesDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SellerDashboard = () => {
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -15,7 +16,7 @@ const SellerDashboard = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isSellerAuthenticated, setIsSellerAuthenticated } = useAuth();
   const [sellerEmail, setSellerEmail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [messageCount, setMessageCount] = useState(0);
@@ -82,7 +83,14 @@ const SellerDashboard = () => {
         const storedEmail = localStorage.getItem('sellerEmail');
         
         if (storedAuth === 'true' && storedEmail) {
-          // Verify with backend
+          setIsAuthenticated(true);
+          setSellerEmail(storedEmail);
+          setIsLoading(false);
+          
+          // Fetch products after confirming authentication
+          fetchProducts();
+        } else {
+          // If not in localStorage, check with server
           const response = await fetch('http://localhost:5000/api/seller/check-auth', {
             method: 'GET',
             headers: {
@@ -96,7 +104,10 @@ const SellerDashboard = () => {
           
           if (data.isAuthenticated) {
             setIsAuthenticated(true);
-            setSellerEmail(storedEmail);
+            setSellerEmail(data.email || '');
+            localStorage.setItem('isSellerAuthenticated', 'true');
+            localStorage.setItem('sellerEmail', data.email || '');
+            localStorage.setItem('sellerId', data.seller_id?.toString() || '');
             
             // Fetch products after confirming authentication
             fetchProducts();
@@ -104,22 +115,24 @@ const SellerDashboard = () => {
             // If backend says not authenticated, clear localStorage and redirect to login
             localStorage.removeItem('isSellerAuthenticated');
             localStorage.removeItem('sellerEmail');
+            setIsAuthenticated(false);
             setIsLoading(false);
             navigate('/seller/login');
           }
-        } else {
-          setIsLoading(false);
-          // If no authentication in localStorage, redirect to login
-          navigate('/seller/login');
         }
       } catch (error) {
         console.error("Auth check error:", error);
         setIsLoading(false);
+        navigate('/seller/login');
       }
     };
 
     checkAuth();
-  }, [navigate]);
+  }, [navigate, setIsSellerAuthenticated]);
+  
+  const setIsAuthenticated = (status: boolean) => {
+    setIsSellerAuthenticated(status);
+  };
 
   const handleLogout = async () => {
     try {
@@ -131,6 +144,7 @@ const SellerDashboard = () => {
       // Clear localStorage
       localStorage.removeItem('isSellerAuthenticated');
       localStorage.removeItem('sellerEmail');
+      localStorage.removeItem('sellerId');
       
       setIsAuthenticated(false);
       setSellerEmail(null);
@@ -175,7 +189,7 @@ const SellerDashboard = () => {
             <p className="text-sm text-gray-600">Manage your poultry products and orders</p>
           </div>
           <div className="flex items-center gap-4">
-            {isAuthenticated ? (
+            {isSellerAuthenticated ? (
               <>
                 <Button 
                   className="bg-sage-600 hover:bg-sage-700"
@@ -237,7 +251,7 @@ const SellerDashboard = () => {
 
           <ProductList products={products} />
           
-          {!isAuthenticated && (
+          {!isSellerAuthenticated && (
             <div className="mt-8 rounded-lg border bg-sage-50 p-6 text-center">
               <h3 className="mb-2 text-lg font-medium">Want to sell your products?</h3>
               <p className="mb-4 text-gray-600">Sign in or create a seller account to add and manage products</p>
@@ -250,7 +264,7 @@ const SellerDashboard = () => {
         </div>
       </main>
 
-      {isAuthenticated && (
+      {isSellerAuthenticated && (
         <>
           <AddProductDialog 
             open={showAddProduct} 

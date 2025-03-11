@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -5,11 +6,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SellerLogin = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const { isSellerAuthenticated, setIsSellerAuthenticated } = useAuth();
   const [errors, setErrors] = useState({
     email: "",
     password: "",
@@ -19,27 +22,41 @@ const SellerLogin = () => {
   useEffect(() => {
     const checkAuthentication = async () => {
       try {
+        // First check localStorage
+        if (localStorage.getItem('isSellerAuthenticated') === 'true') {
+          console.log("Seller authenticated in localStorage, redirecting to dashboard");
+          navigate('/seller/dashboard');
+          return;
+        }
+        
+        // If not in localStorage, check with server
         const response = await fetch('http://localhost:5000/api/seller/check-auth', {
           method: 'GET',
           credentials: 'include'
         });
         
         const data = await response.json();
-        console.log("Auth check response:", data);
+        console.log("Seller auth check response:", data);
         
         if (data.isAuthenticated) {
-          console.log("User is authenticated, redirecting to seller dashboard");
-          navigate('/seller/dashboard', { replace: true });
+          console.log("Seller is authenticated via server, redirecting to dashboard");
+          localStorage.setItem('isSellerAuthenticated', 'true');
+          localStorage.setItem('sellerEmail', data.email || '');
+          localStorage.setItem('sellerId', data.seller_id?.toString() || '');
+          
+          setIsSellerAuthenticated(true);
+          navigate('/seller/dashboard');
         } else {
-          console.log("User is not authenticated");
+          console.log("Seller is not authenticated");
+          localStorage.removeItem('isSellerAuthenticated');
         }
       } catch (error) {
-        console.error("Auth check error:", error);
+        console.error("Seller auth check error:", error);
       }
     };
     
     checkAuthentication();
-  }, [navigate]);
+  }, [navigate, setIsSellerAuthenticated]);
 
   const validateForm = (email: string, password: string) => {
     const newErrors = {
@@ -101,6 +118,9 @@ const SellerLogin = () => {
         if (data.seller_id) {
           localStorage.setItem('sellerId', data.seller_id.toString());
         }
+        
+        // Update auth context state
+        setIsSellerAuthenticated(true);
         
         console.log("Redirecting to seller dashboard...");
         setTimeout(() => {

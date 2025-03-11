@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { Package2, Users, ShoppingCart, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardStat {
   label: string;
@@ -20,8 +21,8 @@ interface DashboardStats {
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAdminAuthenticated, setIsAdminAuthenticated } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminEmail, setAdminEmail] = useState<string | null>(null);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
     products: 0,
@@ -36,6 +37,11 @@ const AdminDashboard = () => {
         const storedEmail = localStorage.getItem('adminEmail');
         
         if (storedAuth === 'true' && storedEmail) {
+          setIsAuthenticated(true);
+          setAdminEmail(storedEmail);
+          setIsLoading(false);
+          fetchDashboardStats();
+        } else {
           const response = await fetch('http://localhost:5000/api/admin/check-auth', {
             method: 'GET',
             credentials: 'include'
@@ -47,15 +53,16 @@ const AdminDashboard = () => {
           if (data.isAuthenticated) {
             setIsAuthenticated(true);
             setAdminEmail(data.email || storedEmail);
+            localStorage.setItem('isAdminAuthenticated', 'true');
+            localStorage.setItem('adminEmail', data.email || '');
             
             fetchDashboardStats();
           } else {
             localStorage.removeItem('isAdminAuthenticated');
             localStorage.removeItem('adminEmail');
+            setIsAuthenticated(false);
             navigate('/admin/login');
           }
-        } else {
-          navigate('/admin/login');
         }
       } catch (error) {
         console.error("Auth check error:", error);
@@ -71,7 +78,11 @@ const AdminDashboard = () => {
     };
 
     checkAuth();
-  }, [navigate, toast]);
+  }, [navigate, toast, setIsAdminAuthenticated]);
+  
+  const setIsAuthenticated = (status: boolean) => {
+    setIsAdminAuthenticated(status);
+  };
   
   const fetchDashboardStats = async () => {
     try {
@@ -118,6 +129,8 @@ const AdminDashboard = () => {
       localStorage.removeItem('adminUsername');
       localStorage.removeItem('adminRole');
       localStorage.removeItem('adminDepartment');
+      
+      setIsAuthenticated(false);
       
       toast({
         title: "Logged out",

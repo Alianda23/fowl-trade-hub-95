@@ -1,23 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { initiateSTKPush } from "@/utils/mpesa";
 import { useNavigate } from "react-router-dom";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, Info } from "lucide-react";
 
 const Checkout = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const [isServerConfigError, setIsServerConfigError] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleMpesaPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     setPaymentError("");
+    setIsServerConfigError(false);
     
     if (!phoneNumber || phoneNumber.length < 10) {
       setPaymentError("Please enter a valid M-Pesa phone number");
@@ -71,6 +73,15 @@ const Checkout = () => {
           setTimeout(() => navigate('/'), 2000);
         }, 5000);
       } else {
+        // Check if it's a server configuration error
+        if (result.message && (
+            result.message.includes("server configuration") || 
+            result.message.includes("callback") ||
+            result.message.includes("CallBackURL")
+        )) {
+          setIsServerConfigError(true);
+        }
+        
         // If payment fails, show error but keep dialog open so user can try again
         setPaymentError(result.message || "Failed to initiate payment. Please try again.");
         
@@ -116,11 +127,22 @@ const Checkout = () => {
             </DialogHeader>
             
             {paymentError && (
-              <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-800">
+              <div className={`mb-4 rounded-md p-3 text-sm ${isServerConfigError ? 'bg-amber-50 text-amber-800' : 'bg-red-50 text-red-800'}`}>
                 <div className="flex items-center">
-                  <AlertTriangle className="mr-2 h-4 w-4 text-red-500" />
+                  {isServerConfigError ? (
+                    <Info className="mr-2 h-4 w-4 text-amber-500" />
+                  ) : (
+                    <AlertTriangle className="mr-2 h-4 w-4 text-red-500" />
+                  )}
                   <p>{paymentError}</p>
                 </div>
+                
+                {isServerConfigError && (
+                  <p className="mt-2 ml-6 text-xs text-amber-700">
+                    Note: This appears to be a server configuration issue with M-Pesa's callback URL, not an issue with your phone number. 
+                    The server needs a publicly accessible URL for callbacks, which may not be properly configured.
+                  </p>
+                )}
               </div>
             )}
             

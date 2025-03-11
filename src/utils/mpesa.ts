@@ -49,12 +49,16 @@ export const initiateSTKPush = async (phoneNumber: string, amount: number): Prom
           // Try to parse the details if it's a JSON string
           const errorDetails = JSON.parse(data.details);
           if (errorDetails.errorMessage) {
-            errorMessage = `M-Pesa Error: ${errorDetails.errorMessage}`;
+            if (errorDetails.errorMessage.includes('Invalid CallBackURL')) {
+              errorMessage = "Payment server configuration error: Invalid callback URL. This is a server configuration issue, not a problem with your phone number or payment details.";
+            } else {
+              errorMessage = `M-Pesa Error: ${errorDetails.errorMessage}`;
+            }
           }
         } catch (e) {
           // If it's not JSON, just use the string
           if (data.details.includes('Invalid CallBackURL')) {
-            errorMessage = "Payment server configuration issue. Please contact support.";
+            errorMessage = "Payment server configuration issue: Invalid callback URL. Please contact support.";
           }
         }
       }

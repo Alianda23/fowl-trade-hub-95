@@ -1,24 +1,26 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { initiateSTKPush } from "@/utils/mpesa";
 import { useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 
 const Checkout = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleMpesaPayment = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPaymentError("");
     
     if (!phoneNumber || phoneNumber.length < 10) {
+      setPaymentError("Please enter a valid M-Pesa phone number");
       toast({
         title: "Invalid Phone Number",
         description: "Please enter a valid M-Pesa phone number",
@@ -49,6 +51,7 @@ const Checkout = () => {
         
         // Close dialog and reset state
         setPaymentDialogOpen(false);
+        setPaymentError("");
         
         // Show processing notification
         toast({
@@ -68,20 +71,19 @@ const Checkout = () => {
           setTimeout(() => navigate('/'), 2000);
         }, 5000);
       } else {
-        let errorMsg = result.message;
-        if (result.error && typeof result.error === 'object') {
-          // Try to extract more detailed error info if available
-          errorMsg += result.error.details ? `: ${result.error.details}` : '';
-        }
+        // If payment fails, show error but keep dialog open so user can try again
+        setPaymentError(result.message || "Failed to initiate payment. Please try again.");
         
         toast({
           title: "Payment Failed",
-          description: errorMsg || "Failed to initiate payment. Please try again.",
+          description: result.message || "Failed to initiate payment. Please try again.",
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error("Payment error:", error);
+      setPaymentError("An unexpected error occurred. Please try again.");
+      
       toast({
         title: "Payment Error",
         description: "An unexpected error occurred. Please try again.",
@@ -108,7 +110,20 @@ const Checkout = () => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>M-Pesa Payment</DialogTitle>
+              <DialogDescription>
+                Enter your M-Pesa phone number to receive the payment prompt.
+              </DialogDescription>
             </DialogHeader>
+            
+            {paymentError && (
+              <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-800">
+                <div className="flex items-center">
+                  <AlertTriangle className="mr-2 h-4 w-4 text-red-500" />
+                  <p>{paymentError}</p>
+                </div>
+              </div>
+            )}
+            
             <form onSubmit={handleMpesaPayment} className="space-y-4 pt-4">
               <div>
                 <label htmlFor="phone" className="block text-sm font-medium text-gray-700">

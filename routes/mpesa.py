@@ -13,7 +13,11 @@ CONSUMER_KEY = "eUb7fiTHhwdNdiAcNgAoJlziG7sZRfnyBu6eBENXS2OqyLGh"
 CONSUMER_SECRET = "LSk070XeJmvHg1OIg39Bl3QgeBCEMM3XMgrKVZDGt5S96wFsTnVJqn2kGyRAO10h"
 BUSINESS_SHORT_CODE = "174379"  # Lipa Na M-Pesa shortcode
 PASSKEY = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"  # Lipa Na M-Pesa passkey
-CALLBACK_URL = "http://localhost:5000/api/mpesa/callback"  # Local development callback URL
+
+# Use ngrok or a similar service for testing in development
+# For production, use your actual domain
+# CALLBACK_URL = "http://localhost:5000/api/mpesa/callback"  # This won't work with M-Pesa API
+CALLBACK_URL = "https://webhook.site/3c1f62b5-4214-47d6-9f26-71c1f4b9c8f0"  # Use a webhook.site URL for testing
 
 # M-Pesa API endpoints
 API_BASE_URL = "https://sandbox.safaricom.co.ke"
@@ -82,6 +86,8 @@ def initiate_stk_push():
             "TransactionDesc": "Payment for products"
         }
         
+        print(f"Sending M-Pesa request with callback URL: {CALLBACK_URL}")
+        
         # Make request to M-Pesa API
         try:
             response = requests.post(
@@ -93,6 +99,9 @@ def initiate_stk_push():
                 },
                 timeout=30  # Add timeout to prevent indefinite waiting
             )
+            
+            print(f"M-Pesa API Response Status: {response.status_code}")
+            print(f"M-Pesa API Response: {response.text}")
             
             if response.status_code != 200:
                 return jsonify({
@@ -138,54 +147,7 @@ def initiate_stk_push():
             'message': f'An error occurred: {str(e)}'
         }), 500
 
-@mpesa_routes.route('/status/<checkout_request_id>', methods=['GET'])
-def check_payment_status(checkout_request_id):
-    # In a real implementation, you would check from database or make API call
-    # Here we're just returning the stored transaction status
-    transaction = TRANSACTIONS.get(checkout_request_id)
-    
-    if not transaction:
-        return jsonify({
-            'success': False,
-            'status': 'failed',
-            'message': 'Transaction not found'
-        }), 404
-    
-    return jsonify({
-        'success': True,
-        'status': transaction['status'],
-        'message': f"Payment {transaction['status']}",
-        'details': transaction
-    })
-
-@mpesa_routes.route('/callback', methods=['POST'])
-def mpesa_callback():
-    """Callback endpoint for M-Pesa to send payment results"""
-    try:
-        data = request.json
-        
-        # Process callback data
-        body = data.get('Body', {})
-        stkCallback = body.get('stkCallback', {})
-        checkout_request_id = stkCallback.get('CheckoutRequestID')
-        
-        if checkout_request_id in TRANSACTIONS:
-            result_code = stkCallback.get('ResultCode')
-            
-            if result_code == 0:
-                # Payment successful
-                TRANSACTIONS[checkout_request_id]['status'] = 'completed'
-            else:
-                # Payment failed
-                TRANSACTIONS[checkout_request_id]['status'] = 'failed'
-                TRANSACTIONS[checkout_request_id]['result_code'] = result_code
-                TRANSACTIONS[checkout_request_id]['result_desc'] = stkCallback.get('ResultDesc')
-        
-        return jsonify({'ResultCode': 0, 'ResultDesc': 'Accepted'})
-        
-    except Exception as e:
-        print(f"Callback processing error: {str(e)}")
-        return jsonify({'ResultCode': 1, 'ResultDesc': 'Rejected'}), 500
+# ... keep existing code (the remaining route handlers - callback, status, etc)
 
 def get_access_token():
     """Get M-Pesa API access token"""
@@ -225,20 +187,4 @@ def get_access_token():
         print(f"Unexpected error: {str(e)}")
         return {'error': f"Unexpected error: {str(e)}"}
 
-def check_internet_connection():
-    """Check if internet connection is available"""
-    try:
-        # Try to connect to Google's DNS server
-        socket.create_connection(("8.8.8.8", 53), timeout=3)
-        return True
-    except OSError:
-        return False
-
-def is_mpesa_api_reachable():
-    """Check if M-Pesa API is reachable"""
-    try:
-        # Try to connect to the M-Pesa API host
-        socket.gethostbyname("sandbox.safaricom.co.ke")
-        return True
-    except socket.gaierror:
-        return False
+# ... keep existing code (helper functions for connection checking)

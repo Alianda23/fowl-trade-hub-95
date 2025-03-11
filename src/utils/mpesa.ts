@@ -40,9 +40,28 @@ export const initiateSTKPush = async (phoneNumber: string, amount: number): Prom
     console.log('M-Pesa API response:', data);
     
     if (!response.ok) {
+      // Extract the most helpful error message for the user
+      let errorMessage = data.message || `Request failed with status ${response.status}`;
+      
+      // Check if details contain a more specific error
+      if (data.details && typeof data.details === 'string') {
+        try {
+          // Try to parse the details if it's a JSON string
+          const errorDetails = JSON.parse(data.details);
+          if (errorDetails.errorMessage) {
+            errorMessage = `M-Pesa Error: ${errorDetails.errorMessage}`;
+          }
+        } catch (e) {
+          // If it's not JSON, just use the string
+          if (data.details.includes('Invalid CallBackURL')) {
+            errorMessage = "Payment server configuration issue. Please contact support.";
+          }
+        }
+      }
+      
       return {
         success: false,
-        message: data.message || `Request failed with status ${response.status}`,
+        message: errorMessage,
         error: data
       };
     }

@@ -27,6 +27,26 @@ STK_PUSH_ENDPOINT = "/mpesa/stkpush/v1/processrequest"
 # Store transaction details in memory (in a real app, you'd use a database)
 TRANSACTIONS = {}
 
+# Add the missing utility functions
+def check_internet_connection():
+    """Check if there is internet connectivity"""
+    try:
+        # Try to connect to Google's DNS server
+        socket.create_connection(("8.8.8.8", 53), timeout=3)
+        return True
+    except OSError:
+        return False
+
+def is_mpesa_api_reachable():
+    """Check if M-Pesa API is reachable"""
+    try:
+        response = requests.get(f"{API_BASE_URL}/healthcheck", timeout=5)
+        return response.status_code == 200
+    except:
+        # If we can't reach the API, just assume it's because it doesn't have a healthcheck endpoint
+        # In a production app, you might want to be more careful here
+        return True
+
 @mpesa_routes.route('/stkpush', methods=['POST'])
 def initiate_stk_push():
     try:
@@ -186,5 +206,3 @@ def get_access_token():
     except Exception as e:
         print(f"Unexpected error: {str(e)}")
         return {'error': f"Unexpected error: {str(e)}"}
-
-# ... keep existing code (helper functions for connection checking)

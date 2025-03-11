@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
@@ -33,21 +32,29 @@ const AdminDashboard = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/admin/check-auth', {
-          method: 'GET',
-          credentials: 'include'
-        });
+        const storedAuth = localStorage.getItem('isAdminAuthenticated');
+        const storedEmail = localStorage.getItem('adminEmail');
         
-        const data = await response.json();
-        
-        if (data.isAuthenticated) {
-          setIsAuthenticated(true);
-          setAdminEmail(data.email);
+        if (storedAuth === 'true' && storedEmail) {
+          const response = await fetch('http://localhost:5000/api/admin/check-auth', {
+            method: 'GET',
+            credentials: 'include'
+          });
           
-          // Once authenticated, fetch dashboard stats
-          fetchDashboardStats();
+          const data = await response.json();
+          console.log("Admin auth check response:", data);
+          
+          if (data.isAuthenticated) {
+            setIsAuthenticated(true);
+            setAdminEmail(data.email || storedEmail);
+            
+            fetchDashboardStats();
+          } else {
+            localStorage.removeItem('isAdminAuthenticated');
+            localStorage.removeItem('adminEmail');
+            navigate('/admin/login');
+          }
         } else {
-          // If not authenticated, redirect to login
           navigate('/admin/login');
         }
       } catch (error) {
@@ -57,6 +64,7 @@ const AdminDashboard = () => {
           description: "Failed to verify authentication status.",
           variant: "destructive",
         });
+        navigate('/admin/login');
       } finally {
         setIsLoading(false);
       }
@@ -103,6 +111,13 @@ const AdminDashboard = () => {
         method: 'POST',
         credentials: 'include'
       });
+      
+      localStorage.removeItem('isAdminAuthenticated');
+      localStorage.removeItem('adminEmail');
+      localStorage.removeItem('adminId');
+      localStorage.removeItem('adminUsername');
+      localStorage.removeItem('adminRole');
+      localStorage.removeItem('adminDepartment');
       
       toast({
         title: "Logged out",

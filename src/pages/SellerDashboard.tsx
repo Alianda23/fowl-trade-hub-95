@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { Product } from "@/data/products";
@@ -93,6 +92,7 @@ const SellerDashboard = () => {
           });
           
           const data = await response.json();
+          console.log("Seller auth check response:", data);
           
           if (data.isAuthenticated) {
             setIsAuthenticated(true);
@@ -101,13 +101,16 @@ const SellerDashboard = () => {
             // Fetch products after confirming authentication
             fetchProducts();
           } else {
-            // If backend says not authenticated, clear localStorage
+            // If backend says not authenticated, clear localStorage and redirect to login
             localStorage.removeItem('isSellerAuthenticated');
             localStorage.removeItem('sellerEmail');
             setIsLoading(false);
+            navigate('/seller/login');
           }
         } else {
           setIsLoading(false);
+          // If no authentication in localStorage, redirect to login
+          navigate('/seller/login');
         }
       } catch (error) {
         console.error("Auth check error:", error);
@@ -116,7 +119,7 @@ const SellerDashboard = () => {
     };
 
     checkAuth();
-  }, []);
+  }, [navigate]);
 
   const handleLogout = async () => {
     try {
@@ -137,6 +140,8 @@ const SellerDashboard = () => {
         title: "Logged out",
         description: "You have been logged out successfully",
       });
+      
+      navigate('/seller/login');
     } catch (error) {
       console.error("Logout error:", error);
     }

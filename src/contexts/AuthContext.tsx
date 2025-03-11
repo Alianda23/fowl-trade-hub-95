@@ -8,6 +8,9 @@ interface AuthContextType {
   userEmail: string;
   setUserEmail: React.Dispatch<React.SetStateAction<string>>;
   handleLogout: () => void;
+  // Add seller and admin authentication states
+  isSellerAuthenticated: boolean;
+  isAdminAuthenticated: boolean;
 }
 
 // Create the context with a default value
@@ -17,21 +20,38 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState("");
+  const [isSellerAuthenticated, setIsSellerAuthenticated] = useState(false);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
   // Check localStorage for auth state on initial render
   useEffect(() => {
     const authStatus = localStorage.getItem('isAuthenticated') === 'true';
     const email = localStorage.getItem('userEmail') || '';
+    const sellerAuthStatus = localStorage.getItem('isSellerAuthenticated') === 'true';
+    const adminAuthStatus = localStorage.getItem('isAdminAuthenticated') === 'true';
     
     setIsAuthenticated(authStatus);
     setUserEmail(email);
+    setIsSellerAuthenticated(sellerAuthStatus);
+    setIsAdminAuthenticated(adminAuthStatus);
   }, []);
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     setUserEmail("");
+    setIsSellerAuthenticated(false);
+    setIsAdminAuthenticated(false);
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userEmail');
+    localStorage.removeItem('isSellerAuthenticated');
+    localStorage.removeItem('isAdminAuthenticated');
+    localStorage.removeItem('sellerId');
+    localStorage.removeItem('adminId');
+    localStorage.removeItem('adminEmail');
+    localStorage.removeItem('adminUsername');
+    localStorage.removeItem('adminRole');
+    localStorage.removeItem('adminDepartment');
+    localStorage.removeItem('sellerEmail');
   };
 
   const value = {
@@ -39,7 +59,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsAuthenticated,
     userEmail,
     setUserEmail,
-    handleLogout
+    handleLogout,
+    isSellerAuthenticated,
+    isAdminAuthenticated
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

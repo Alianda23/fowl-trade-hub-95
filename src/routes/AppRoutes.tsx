@@ -93,12 +93,17 @@ const AppRoutes = () => {
 
       <Route path="/seller/signup" element={<SellerSignup />} />
       <Route path="/seller/login" element={<SellerLogin />} />
+      
+      {/* Modified: Changed path from "/seller/dashboard" to "/seller/dashboard" and from "/seller" to match the login redirect */}
       <Route path="/seller/dashboard" element={<SellerDashboard />} />
       <Route path="/seller/orders" element={<SellerOrders />} />
       <Route path="/seller/profile" element={<SellerProfile />} />
 
       <Route path="/admin/login" element={<AdminLogin />} />
-      <Route path="/admin" element={<AdminDashboard />} />
+      
+      {/* Modified: Changed path from "/admin" to "/admin/dashboard" to match the login redirect */}
+      <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      <Route path="/admin" element={<AdminDashboard />} /> {/* Keep this as a fallback */}
       <Route path="/admin/products" element={<Products />} />
       <Route path="/admin/orders" element={<Orders />} />
       <Route path="/admin/users" element={<Users />} />

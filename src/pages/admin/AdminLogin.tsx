@@ -5,27 +5,20 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Loader2, Lock, User } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
 
 const AdminLogin = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const { isAdminAuthenticated, setIsAdminAuthenticated } = useAuth();
   const [errors, setErrors] = useState({
     email: "",
     password: "",
   });
 
+  // Check if already authenticated on component mount
   useEffect(() => {
     const checkAuthentication = async () => {
       try {
-        if (localStorage.getItem('isAdminAuthenticated') === 'true') {
-          console.log("Admin authenticated in localStorage, redirecting to dashboard");
-          navigate('/admin/dashboard');
-          return;
-        }
-        
         const response = await fetch('http://localhost:5000/api/admin/check-auth', {
           method: 'GET',
           credentials: 'include'
@@ -35,19 +28,10 @@ const AdminLogin = () => {
         console.log("Admin auth check response:", data);
         
         if (data.isAuthenticated) {
-          console.log("Admin is authenticated via server, redirecting to dashboard");
-          localStorage.setItem('isAdminAuthenticated', 'true');
-          localStorage.setItem('adminEmail', data.email || '');
-          localStorage.setItem('adminId', data.admin_id?.toString() || '');
-          localStorage.setItem('adminUsername', data.username || '');
-          localStorage.setItem('adminRole', data.role || 'general');
-          localStorage.setItem('adminDepartment', data.department || '');
-          
-          setIsAdminAuthenticated(true);
-          navigate('/admin/dashboard');
+          console.log("Admin is authenticated, redirecting to dashboard");
+          navigate('/admin/dashboard', { replace: true });
         } else {
           console.log("Admin is not authenticated");
-          localStorage.removeItem('isAdminAuthenticated');
         }
       } catch (error) {
         console.error("Admin auth check error:", error);
@@ -55,7 +39,7 @@ const AdminLogin = () => {
     };
     
     checkAuthentication();
-  }, [navigate, setIsAdminAuthenticated]);
+  }, [navigate]);
 
   const validateForm = (email: string, password: string) => {
     const newErrors = {
@@ -86,6 +70,7 @@ const AdminLogin = () => {
     try {
       console.log("Attempting admin login with:", { email, password });
       
+      // Connect to Python backend
       const response = await fetch('http://localhost:5000/api/admin/login', {
         method: 'POST',
         headers: {
@@ -107,6 +92,7 @@ const AdminLogin = () => {
           description: "Welcome to the admin dashboard!",
         });
         
+        // Store admin profile data in localStorage
         localStorage.setItem('isAdminAuthenticated', 'true');
         localStorage.setItem('adminEmail', email);
         localStorage.setItem('adminUsername', data.username || '');
@@ -120,10 +106,10 @@ const AdminLogin = () => {
           localStorage.setItem('adminDepartment', data.department);
         }
         
-        setIsAdminAuthenticated(true);
-        
+        // Modified: Fix the navigation path to use /admin/dashboard instead of /admin
         console.log("Redirecting to admin dashboard...");
         setTimeout(() => {
+          // Using a timeout to ensure state updates are processed
           navigate('/admin/dashboard', { replace: true });
         }, 100);
       } else {

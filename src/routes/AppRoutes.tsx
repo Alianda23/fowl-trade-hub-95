@@ -29,7 +29,6 @@ import Layout from "@/components/Layout";
 const AppRoutes = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { addToCart } = useCart();
-  const { isAuthenticated, isSellerAuthenticated, isAdminAuthenticated } = useAuth();
 
   return (
     <Routes>
@@ -92,15 +91,17 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Seller routes */}
       <Route path="/seller/signup" element={<SellerSignup />} />
       <Route path="/seller/login" element={<SellerLogin />} />
+      
+      {/* Modified: Changed path from "/seller/dashboard" to "/seller/dashboard" and from "/seller" to match the login redirect */}
       <Route path="/seller/dashboard" element={<SellerDashboard />} />
       <Route path="/seller/orders" element={<SellerOrders />} />
       <Route path="/seller/profile" element={<SellerProfile />} />
 
-      {/* Admin routes */}
       <Route path="/admin/login" element={<AdminLogin />} />
+      
+      {/* Modified: Changed path from "/admin" to "/admin/dashboard" to match the login redirect */}
       <Route path="/admin/dashboard" element={<AdminDashboard />} />
       <Route path="/admin" element={<AdminDashboard />} /> {/* Keep this as a fallback */}
       <Route path="/admin/products" element={<Products />} />

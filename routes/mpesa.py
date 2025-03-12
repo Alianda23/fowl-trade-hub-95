@@ -1,4 +1,3 @@
-
 from flask import Blueprint, request, jsonify
 import requests
 import base64
@@ -40,12 +39,32 @@ def check_internet_connection():
 def is_mpesa_api_reachable():
     """Check if M-Pesa API is reachable"""
     try:
-        response = requests.get(f"{API_BASE_URL}/healthcheck", timeout=5)
-        return response.status_code == 200
+        response = requests.get(f"{API_BASE_URL}/oauth/v1/generate?grant_type=client_credentials", timeout=5)
+        return 200 <= response.status_code < 300
     except:
-        # If we can't reach the API, just assume it's because it doesn't have a healthcheck endpoint
-        # In a production app, you might want to be more careful here
-        return True
+        return False
+
+@mpesa_routes.route('/check-connectivity', methods=['GET'])
+def check_connectivity():
+    """Check if M-Pesa API is reachable"""
+    # First check internet connectivity
+    if not check_internet_connection():
+        return jsonify({
+            'success': False,
+            'message': 'No internet connection. Please check your network and try again.'
+        })
+    
+    # Then check if M-Pesa API is reachable
+    if not is_mpesa_api_reachable():
+        return jsonify({
+            'success': False,
+            'message': 'Unable to reach M-Pesa API. The service might be temporarily unavailable.'
+        })
+    
+    return jsonify({
+        'success': True,
+        'message': 'M-Pesa API is reachable'
+    })
 
 @mpesa_routes.route('/stkpush', methods=['POST'])
 def initiate_stk_push():
@@ -167,7 +186,100 @@ def initiate_stk_push():
             'message': f'An error occurred: {str(e)}'
         }), 500
 
-# ... keep existing code (the remaining route handlers - callback, status, etc)
+@mpesa_routes.route('/callback', methods=['POST'])
+def mpesa_callback():
+    """Handle M-Pesa callback after STK push"""
+    try:
+        callback_data = request.json
+        print(f"M-Pesa Callback Data: {json.dumps(callback_data, indent=4)}")  # Pretty print the JSON
+        
+        # Extract relevant information from the callback
+        merchant_request_id = callback_data.get('Body', {}).get('stkCallback', {}).get('MerchantRequestID')
+        checkout_request_id = callback_data.get('Body', {}).get('stkCallback', {}).get('CheckoutRequestID')
+        result_code = callback_data.get('Body', {}).get('stkCallback', {}).get('ResultCode')
+        result_desc = callback_data.get('Body', {}).get('stkCallback', {}).get('ResultDesc')
+        
+        # Log the extracted information
+        print(f"MerchantRequestID: {merchant_request_id}")
+        print(f"CheckoutRequestID: {checkout_request_id}")
+        print(f"ResultCode: {result_code}")
+        print(f"ResultDesc: {result_desc}")
+        
+        # Check if the transaction was successful
+        if result_code == 0:
+            # Extract callback metadata
+            callback_metadata = callback_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {})
+            
+            # Log the callback metadata
+            print(f"CallbackMetadata: {json.dumps(callback_metadata, indent=4)}")  # Pretty print the JSON
+            
+            # Extract transaction details from metadata
+            amount = None
+            mpesa_receipt_number = None
+            transaction_date = None
+            phone_number = None
+            
+            for item in callback_metadata.get('Item', []):
+                name = item.get('Name')
+                value = item.get('Value')
+                
+                if name == 'Amount':
+                    amount = value
+                elif name == 'MpesaReceiptNumber':
+                    mpesa_receipt_number = value
+                elif name == 'TransactionDate':
+                    transaction_date = value
+                elif name == 'PhoneNumber':
+                    phone_number = value
+            
+            # Log the extracted transaction details
+            print(f"Amount: {amount}")
+            print(f"MpesaReceiptNumber: {mpesa_receipt_number}")
+            print(f"TransactionDate: {transaction_date}")
+            print(f"PhoneNumber: {phone_number}")
+            
+            # Update transaction status in the TRANSACTIONS dictionary
+            if checkout_request_id in TRANSACTIONS:
+                TRANSACTIONS[checkout_request_id]['status'] = 'completed'
+                TRANSACTIONS[checkout_request_id]['mpesa_receipt_number'] = mpesa_receipt_number
+                TRANSACTIONS[checkout_request_id]['transaction_date'] = transaction_date
+                TRANSACTIONS[checkout_request_id]['amount'] = amount
+                TRANSACTIONS[checkout_request_id]['phone_number'] = phone_number
+                print(f"Transaction {checkout_request_id} updated successfully.")
+            else:
+                print(f"Transaction {checkout_request_id} not found.")
+        else:
+            # Update transaction status to failed
+            if checkout_request_id in TRANSACTIONS:
+                TRANSACTIONS[checkout_request_id]['status'] = 'failed'
+                TRANSACTIONS[checkout_request_id]['result_code'] = result_code
+                TRANSACTIONS[checkout_request_id]['result_desc'] = result_desc
+                print(f"Transaction {checkout_request_id} marked as failed.")
+            else:
+                print(f"Transaction {checkout_request_id} not found.")
+        
+        # Acknowledge receipt - important to return 200 OK to M-Pesa
+        return jsonify({'success': True, 'message': 'Callback processed successfully'}), 200
+    
+    except Exception as e:
+        print(f"Callback processing error: {str(e)}")
+        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 500
+
+@mpesa_routes.route('/status/<checkout_request_id>', methods=['GET'])
+def check_payment_status(checkout_request_id):
+    """Check the status of an M-Pesa payment"""
+    if checkout_request_id in TRANSACTIONS:
+        transaction = TRANSACTIONS[checkout_request_id]
+        return jsonify({
+            'success': True,
+            'status': transaction['status'],
+            'details': transaction
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'message': 'Transaction not found'
+        }), 404
 
 def get_access_token():
     """Get M-Pesa API access token"""

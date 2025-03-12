@@ -30,6 +30,13 @@ export const initiateSTKPush = async (phoneNumber: string, amount: number): Prom
         credentials: 'include'
       });
       
+      if (!connectivityCheck.ok) {
+        return {
+          success: false,
+          message: 'Unable to reach M-Pesa API. The service might be temporarily unavailable.',
+        };
+      }
+      
       const checkResult = await connectivityCheck.json();
       if (!checkResult.success) {
         return {
@@ -186,12 +193,19 @@ export const checkMpesaConnectivity = async (): Promise<{
       signal: AbortSignal.timeout(10000) // 10 seconds timeout
     });
     
+    if (!response.ok) {
+      return {
+        success: false,
+        message: `Unable to reach M-Pesa API (Status: ${response.status}). The service might be temporarily unavailable.`
+      };
+    }
+    
     return await response.json();
   } catch (error) {
     console.error('M-Pesa connectivity check error:', error);
     return {
       success: false,
-      message: 'Could not check M-Pesa API connectivity'
+      message: 'Could not check M-Pesa API connectivity. Server might be down or unreachable.'
     };
   }
 };

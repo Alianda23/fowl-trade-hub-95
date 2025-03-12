@@ -23,37 +23,7 @@ export const initiateSTKPush = async (phoneNumber: string, amount: number): Prom
     
     console.log(`Initiating STK push to ${formattedPhone} for amount ${amount}`);
     
-    // Check connectivity before making the API call
-    try {
-      const connectivityCheck = await fetch('http://localhost:5000/api/mpesa/check-connectivity', {
-        method: 'GET',
-        credentials: 'include'
-      });
-      
-      if (!connectivityCheck.ok) {
-        return {
-          success: false,
-          message: 'Unable to reach M-Pesa API. The service might be temporarily unavailable.',
-        };
-      }
-      
-      const checkResult = await connectivityCheck.json();
-      if (!checkResult.success) {
-        return {
-          success: false,
-          message: checkResult.message || 'Unable to reach M-Pesa API. Please check your network connection and try again.',
-        };
-      }
-    } catch (error) {
-      console.error('Connectivity check error:', error);
-      return {
-        success: false,
-        message: 'Could not check API connectivity. The server might be down or unreachable.',
-        error: error
-      };
-    }
-    
-    // Call backend endpoint to initiate STK push
+    // Call backend endpoint to initiate STK push directly without connectivity check
     const response = await fetch('http://localhost:5000/api/mpesa/stkpush', {
       method: 'POST',
       headers: {

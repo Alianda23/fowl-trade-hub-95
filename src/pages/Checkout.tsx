@@ -1,12 +1,11 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { initiateSTKPush, checkMpesaConnectivity } from "@/utils/mpesa";
+import { initiateSTKPush } from "@/utils/mpesa";
 import { useNavigate } from "react-router-dom";
-import { Loader2, AlertTriangle, Info, WifiOff } from "lucide-react";
+import { Loader2, AlertTriangle, Info } from "lucide-react";
 
 const Checkout = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -14,45 +13,13 @@ const Checkout = () => {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [paymentError, setPaymentError] = useState("");
   const [isServerConfigError, setIsServerConfigError] = useState(false);
-  const [isConnectivityError, setIsConnectivityError] = useState(false);
-  const [mpesaConnectivity, setMpesaConnectivity] = useState<boolean | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  // Check M-Pesa connectivity when dialog opens
-  useEffect(() => {
-    if (paymentDialogOpen) {
-      checkMpesaApiConnectivity();
-    }
-  }, [paymentDialogOpen]);
-
-  const checkMpesaApiConnectivity = async () => {
-    try {
-      const result = await checkMpesaConnectivity();
-      setMpesaConnectivity(result.success);
-      setIsConnectivityError(!result.success);
-      
-      if (!result.success) {
-        setPaymentError(result.message || "Unable to reach M-Pesa API. The service might be temporarily unavailable.");
-        toast({
-          title: "Connectivity Issue",
-          description: "There seems to be a problem connecting to the M-Pesa service.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Connectivity check error:", error);
-      setMpesaConnectivity(false);
-      setIsConnectivityError(true);
-      setPaymentError("Failed to check M-Pesa API connectivity. Please try again later.");
-    }
-  };
 
   const handleMpesaPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     setPaymentError("");
     setIsServerConfigError(false);
-    setIsConnectivityError(false);
     
     if (!phoneNumber || phoneNumber.length < 10) {
       setPaymentError("Please enter a valid M-Pesa phone number");
@@ -115,15 +82,6 @@ const Checkout = () => {
           setIsServerConfigError(true);
         }
         
-        // Check if it's a connectivity error
-        if (result.message && (
-            result.message.includes("Unable to reach M-Pesa API") ||
-            result.message.includes("connectivity") ||
-            result.message.includes("network")
-        )) {
-          setIsConnectivityError(true);
-        }
-        
         // If payment fails, show error but keep dialog open so user can try again
         setPaymentError(result.message || "Failed to initiate payment. Please try again.");
         
@@ -147,15 +105,6 @@ const Checkout = () => {
     }
   };
 
-  const retryConnectivity = async () => {
-    toast({
-      title: "Checking Connectivity",
-      description: "Trying to reconnect to M-Pesa...",
-    });
-    
-    await checkMpesaApiConnectivity();
-  };
-
   return (
     <div className="container mx-auto max-w-2xl py-16">
       <h1 className="mb-8 text-3xl font-bold">Checkout</h1>
@@ -177,26 +126,7 @@ const Checkout = () => {
               </DialogDescription>
             </DialogHeader>
             
-            {isConnectivityError && (
-              <div className="mb-4 rounded-md bg-amber-50 p-3 text-amber-800 text-sm">
-                <div className="flex items-center">
-                  <WifiOff className="mr-2 h-4 w-4 text-amber-500" />
-                  <p>Unable to reach M-Pesa API. The service might be temporarily unavailable.</p>
-                </div>
-                <div className="mt-2 flex justify-end">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={retryConnectivity}
-                    className="text-xs"
-                  >
-                    Retry Connection
-                  </Button>
-                </div>
-              </div>
-            )}
-            
-            {paymentError && !isConnectivityError && (
+            {paymentError && (
               <div className={`mb-4 rounded-md p-3 text-sm ${isServerConfigError ? 'bg-amber-50 text-amber-800' : 'bg-red-50 text-red-800'}`}>
                 <div className="flex items-center">
                   {isServerConfigError ? (
@@ -237,7 +167,7 @@ const Checkout = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-green-600 hover:bg-green-700"
-                disabled={isProcessing || (mpesaConnectivity === false)}
+                disabled={isProcessing}
               >
                 {isProcessing ? (
                   <>

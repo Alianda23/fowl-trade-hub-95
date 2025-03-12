@@ -1,9 +1,11 @@
+
 from flask import Blueprint, request, jsonify
 import requests
 import base64
 from datetime import datetime
 import json
 import socket
+import time
 
 mpesa_routes = Blueprint('mpesa', __name__)
 
@@ -13,9 +15,7 @@ CONSUMER_SECRET = "LSk070XeJmvHg1OIg39Bl3QgeBCEMM3XMgrKVZDGt5S96wFsTnVJqn2kGyRAO
 BUSINESS_SHORT_CODE = "174379"  # Lipa Na M-Pesa shortcode
 PASSKEY = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"  # Lipa Na M-Pesa passkey
 
-# Use ngrok or a similar service for testing in development
 # For production, use your actual domain
-# CALLBACK_URL = "http://localhost:5000/api/mpesa/callback"  # This won't work with M-Pesa API
 CALLBACK_URL = "https://webhook.site/3c1f62b5-4214-47d6-9f26-71c1f4b9c8f0"  # Use a webhook.site URL for testing
 
 # M-Pesa API endpoints
@@ -26,25 +26,9 @@ STK_PUSH_ENDPOINT = "/mpesa/stkpush/v1/processrequest"
 # Store transaction details in memory (in a real app, you'd use a database)
 TRANSACTIONS = {}
 
-# Add the missing utility functions
-def check_internet_connection():
-    """Check if there is internet connectivity"""
-    try:
-        # Try to connect to Google's DNS server
-        socket.create_connection(("8.8.8.8", 53), timeout=3)
-        return True
-    except OSError:
-        return False
-
-def is_mpesa_api_reachable():
-    """Check if M-Pesa API is reachable"""
-    try:
-        response = requests.get(f"{API_BASE_URL}/healthcheck", timeout=5)
-        return response.status_code == 200
-    except:
-        # If we can't reach the API, just assume it's because it doesn't have a healthcheck endpoint
-        # In a production app, you might want to be more careful here
-        return True
+# Max retries for API calls
+MAX_RETRIES = 3
+RETRY_DELAY = 2  # seconds
 
 @mpesa_routes.route('/stkpush', methods=['POST'])
 def initiate_stk_push():
@@ -59,30 +43,29 @@ def initiate_stk_push():
                 'message': 'Phone number is required'
             }), 400
         
-        # Check internet connectivity first
-        if not check_internet_connection():
+        # Get access token with retry
+        access_token = None
+        retry_count = 0
+        auth_error = None
+        
+        while retry_count < MAX_RETRIES and access_token is None:
+            access_token_result = get_access_token()
+            if 'access_token' in access_token_result:
+                access_token = access_token_result['access_token']
+                break
+            else:
+                auth_error = access_token_result.get('error')
+                print(f"Auth attempt {retry_count + 1} failed: {auth_error}")
+                retry_count += 1
+                if retry_count < MAX_RETRIES:
+                    time.sleep(RETRY_DELAY)
+        
+        if access_token is None:
             return jsonify({
                 'success': False,
-                'message': 'No internet connection. Please check your network and try again.'
-            }), 503
-        
-        # Check if M-Pesa API is reachable
-        if not is_mpesa_api_reachable():
-            return jsonify({
-                'success': False,
-                'message': 'Unable to reach M-Pesa API. Please try again later.'
-            }), 503
-        
-        # Get access token
-        access_token_result = get_access_token()
-        if 'error' in access_token_result:
-            return jsonify({
-                'success': False,
-                'message': 'Failed to authenticate with M-Pesa',
-                'details': access_token_result['error']
-            }), 500
-        
-        access_token = access_token_result['access_token']
+                'message': 'Could not authenticate with M-Pesa service',
+                'details': auth_error
+            }), 503  # Service Unavailable
         
         # Prepare timestamp
         timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
@@ -107,63 +90,86 @@ def initiate_stk_push():
         
         print(f"Sending M-Pesa request with callback URL: {CALLBACK_URL}")
         
-        # Make request to M-Pesa API
-        try:
-            response = requests.post(
-                f"{API_BASE_URL}{STK_PUSH_ENDPOINT}",
-                json=stk_request,
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Content-Type": "application/json"
-                },
-                timeout=30  # Add timeout to prevent indefinite waiting
-            )
-            
-            print(f"M-Pesa API Response Status: {response.status_code}")
-            print(f"M-Pesa API Response: {response.text}")
-            
-            if response.status_code != 200:
-                return jsonify({
-                    'success': False,
-                    'message': f'M-Pesa API returned status code {response.status_code}',
-                    'details': response.text
-                }), 400
+        # Make request to M-Pesa API with retry
+        stk_response = None
+        stk_error = None
+        retry_count = 0
+        
+        while retry_count < MAX_RETRIES and stk_response is None:
+            try:
+                response = requests.post(
+                    f"{API_BASE_URL}{STK_PUSH_ENDPOINT}",
+                    json=stk_request,
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Content-Type": "application/json"
+                    },
+                    timeout=30,
+                    verify=True  # Enable SSL verification
+                )
                 
-            mpesa_response = response.json()
-            
-            if 'ResponseCode' in mpesa_response and mpesa_response['ResponseCode'] == '0':
-                # Success - store transaction
-                checkout_request_id = mpesa_response['CheckoutRequestID']
-                TRANSACTIONS[checkout_request_id] = {
-                    'amount': amount,
-                    'phone_number': phone_number,
-                    'status': 'pending',
-                    'timestamp': datetime.now().isoformat()
-                }
+                print(f"M-Pesa API Response Status: {response.status_code}")
+                print(f"M-Pesa API Response: {response.text}")
                 
-                return jsonify({
-                    'success': True,
-                    'message': 'STK push sent successfully',
-                    'checkoutRequestID': checkout_request_id
-                })
-            else:
-                return jsonify({
-                    'success': False,
-                    'message': 'Failed to initiate STK push',
-                    'details': mpesa_response
-                }), 400
-        except requests.exceptions.RequestException as e:
+                if response.status_code == 200:
+                    try:
+                        stk_response = response.json()
+                    except json.JSONDecodeError:
+                        stk_error = "Invalid JSON response from M-Pesa"
+                elif response.status_code == 503:
+                    stk_error = "M-Pesa service is temporarily unavailable"
+                else:
+                    stk_error = f"M-Pesa API returned status code {response.status_code}: {response.text}"
+                
+                if stk_response is None:
+                    retry_count += 1
+                    if retry_count < MAX_RETRIES:
+                        print(f"Retrying STK push, attempt {retry_count + 1}")
+                        time.sleep(RETRY_DELAY)
+            except requests.exceptions.RequestException as e:
+                stk_error = str(e)
+                retry_count += 1
+                if retry_count < MAX_RETRIES:
+                    print(f"Request exception, retrying: {stk_error}")
+                    time.sleep(RETRY_DELAY)
+        
+        if stk_response is None:
+            error_message = "Unable to complete payment request"
+            if stk_error:
+                error_message += f": {stk_error}"
+            
             return jsonify({
                 'success': False,
-                'message': 'Error sending STK push request',
-                'details': str(e)
-            }), 500
+                'message': error_message
+            }), 503
+                
+        if 'ResponseCode' in stk_response and stk_response['ResponseCode'] == '0':
+            # Success - store transaction
+            checkout_request_id = stk_response['CheckoutRequestID']
+            TRANSACTIONS[checkout_request_id] = {
+                'amount': amount,
+                'phone_number': phone_number,
+                'status': 'pending',
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            return jsonify({
+                'success': True,
+                'message': 'Payment request sent successfully. Please check your phone.',
+                'checkoutRequestID': checkout_request_id
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to initiate payment request',
+                'details': stk_response
+            }), 400
             
     except Exception as e:
         print(f"STK push error: {str(e)}")
         return jsonify({
             'success': False,
-            'message': f'An error occurred: {str(e)}'
+            'message': 'An error occurred while processing your payment request'
         }), 500
 
 @mpesa_routes.route('/callback', methods=['POST'])
@@ -238,7 +244,8 @@ def get_access_token():
             headers={
                 "Authorization": f"Basic {credentials}"
             },
-            timeout=30  # Add timeout to prevent indefinite waiting
+            timeout=30,
+            verify=True  # Enable SSL verification
         )
         
         if response.status_code != 200:

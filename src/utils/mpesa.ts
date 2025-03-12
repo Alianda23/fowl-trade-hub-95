@@ -43,6 +43,11 @@ export const initiateSTKPush = async (phoneNumber: string, amount: number): Prom
       // Extract the most helpful error message for the user
       let errorMessage = data.message || `Request failed with status ${response.status}`;
       
+      // Special handling for 503 Service Unavailable
+      if (response.status === 503) {
+        errorMessage = "Payment service is currently unavailable. Please try again later.";
+      }
+      
       // Check if details contain a more specific error
       if (data.details && typeof data.details === 'string') {
         try {
@@ -79,7 +84,7 @@ export const initiateSTKPush = async (phoneNumber: string, amount: number): Prom
     console.error('M-Pesa STK push error:', error);
     return {
       success: false,
-      message: 'Failed to initiate payment. Please try again.',
+      message: 'Unable to connect to payment service. Please check your internet connection and try again.',
       error: error
     };
   }

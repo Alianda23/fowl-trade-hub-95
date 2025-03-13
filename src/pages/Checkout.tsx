@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -8,7 +7,7 @@ import { initiateSTKPush } from "@/utils/mpesa";
 import { useNavigate } from "react-router-dom";
 import { Loader2, AlertTriangle, Info, ShoppingBag } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
-import { useOrders } from "@/contexts/OrdersContext";
+import { useOrders, Order } from "@/contexts/OrdersContext";
 import { v4 as uuidv4 } from "uuid";
 
 const Checkout = () => {
@@ -27,10 +26,10 @@ const Checkout = () => {
 
   const createOrder = () => {
     // Create a new order from cart items
-    const newOrder = {
+    const newOrder: Order = {
       id: uuidv4(),
       products: [...cart],
-      status: "Pending",
+      status: "Pending" as Order["status"],
       date: new Date().toISOString(),
       total: cartTotal
     };

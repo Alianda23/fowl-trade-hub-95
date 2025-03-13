@@ -1,6 +1,7 @@
 
 import { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { Product } from "@/data/products";
+import { useAuth } from "./AuthContext";
 
 // Define CartItem interface
 export interface CartItem extends Product {
@@ -25,24 +26,71 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
+  const { isAuthenticated, userId } = useAuth();
 
-  // Load cart from localStorage on initial render
+  // Load cart from localStorage or database based on authentication status
   useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      try {
-        const parsedCart = JSON.parse(savedCart);
-        setCart(parsedCart);
-      } catch (e) {
-        console.error("Error parsing cart from localStorage", e);
+    if (isAuthenticated && userId) {
+      // Fetch cart from database for authenticated users
+      fetchCartFromDatabase();
+    } else {
+      // Load cart from localStorage for non-authenticated users
+      const savedCart = localStorage.getItem('cart');
+      if (savedCart) {
+        try {
+          const parsedCart = JSON.parse(savedCart);
+          setCart(parsedCart);
+        } catch (e) {
+          console.error("Error parsing cart from localStorage", e);
+        }
       }
     }
-  }, []);
+  }, [isAuthenticated, userId]);
 
-  // Save cart to localStorage whenever it changes
+  // Fetch cart from database
+  const fetchCartFromDatabase = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/cart`, {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.cart) {
+          setCart(data.cart);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching cart from database:", error);
+    }
+  };
+
+  // Save cart to database for authenticated users or localStorage for non-authenticated users
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cart));
-  }, [cart]);
+    if (isAuthenticated && userId) {
+      // Save cart to database
+      saveCartToDatabase();
+    } else {
+      // Save cart to localStorage
+      localStorage.setItem('cart', JSON.stringify(cart));
+    }
+  }, [cart, isAuthenticated, userId]);
+
+  // Save cart to database
+  const saveCartToDatabase = async () => {
+    try {
+      await fetch(`http://localhost:5000/api/cart/update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ cart }),
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error("Error saving cart to database:", error);
+    }
+  };
 
   // Add item to cart
   const addToCart = (product: Product) => {

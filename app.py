@@ -1,12 +1,12 @@
-
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
-from models import db, User, SellerProfile, AdminProfile, Product, Message
+from models import db, User, SellerProfile, AdminProfile, Product, Message, CartItem, Order, OrderItem
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
 from app_auth import check_admin_auth, check_seller_auth
 from routes.mpesa import mpesa_routes
+import uuid
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/kukuhub'
@@ -806,5 +806,77 @@ def test_get_users():
         print(f"Error fetching test users: {str(e)}")
         return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# Add these new models for cart and orders
+class CartItem(db.Model):
+    __tablename__ = 'cart_items'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.product_id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    
+    user = db.relationship('User', backref=db.backref('cart_items', lazy=True))
+    product = db.relationship('Product', backref=db.backref('cart_items', lazy=True))
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Order(db.Model):
+    __tablename__ = 'orders'
+    
+    order_id = db.Column(db.String(36), primary_key=True)  # UUID
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    total = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='Pending')
+    
+    user = db.relationship('User', backref=db.backref('orders', lazy=True))
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class OrderItem(db.Model):
+    __tablename__ = 'order_items'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.String(36), db.ForeignKey('orders.order_id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.product_id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    price = db.Column(db.Float, nullable=False)  # Price at time of purchase
+    
+    order = db.relationship('Order', backref=db.backref('items', lazy=True))
+    product = db.relationship('Product', backref=db.backref('order_items', lazy=True))
+
+# Add new routes for cart and orders
+@app.route('/api/cart', methods=['GET'])
+def get_cart():
+    """Get cart items for the authenticated user"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'User not authenticated'})
+    
+    try:
+        user_id = session['user_id']
+        cart_items = CartItem.query.filter_by(user_id=user_id).all()
+        cart = []
+        
+        for item in cart_items:
+            product = Product.query.get(item.product_id)
+            seller = SellerProfile.query.get(product.seller_id)
+            
+            cart.append({
+                'id': str(product.product_id),
+                'name': product.name,
+                'description': product.description,
+                'price': product.price,
+                'image': product.image_url,
+                'quantity': item.quantity,
+                'sellerId': str(product.seller_id),
+                'sellerName': seller.business_name if seller else "Unknown"
+            })
+        
+        return jsonify({
+            'success': True,
+            'cart': cart
+        })
+    
+    except Exception as e:
+        print(f"

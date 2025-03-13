@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -8,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { Loader2, AlertTriangle, Info, ShoppingBag } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useOrders, Order } from "@/contexts/OrdersContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { v4 as uuidv4 } from "uuid";
 
 const Checkout = () => {
@@ -18,27 +20,53 @@ const Checkout = () => {
   const [isServerConfigError, setIsServerConfigError] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { cart, removeFromCart, setShowCart } = useCart();
+  const { cart, removeFromCart, setShowCart, clearCart } = useCart();
   const { orders, setOrders } = useOrders();
+  const { isAuthenticated, userId } = useAuth();
 
   // Calculate total from cart
   const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 
-  const createOrder = () => {
+  const createOrder = async () => {
     // Create a new order from cart items
     const newOrder: Order = {
       id: uuidv4(),
       products: [...cart],
       status: "Pending" as Order["status"],
       date: new Date().toISOString(),
-      total: cartTotal
+      total: cartTotal,
+      userId: userId || undefined
     };
+
+    // Save to database if user is authenticated
+    if (isAuthenticated) {
+      try {
+        const response = await fetch('http://localhost:5000/api/orders/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(newOrder),
+          credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          newOrder.id = data.orderId || newOrder.id; // Use server-generated ID if available
+        } else {
+          console.error("Failed to save order to database:", data.message);
+        }
+      } catch (error) {
+        console.error("Error saving order to database:", error);
+      }
+    }
 
     // Add to orders
     setOrders([newOrder, ...orders]);
     
-    // Clear cart items one by one
-    cart.forEach(item => removeFromCart(item.id));
+    // Clear cart
+    clearCart();
     
     return newOrder;
   };

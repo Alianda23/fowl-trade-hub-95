@@ -1,8 +1,7 @@
-
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { Product } from "@/data/products";
-import { Plus, MessageSquare, ArrowLeft } from "lucide-react";
+import { Plus, MessageSquare, ArrowLeft, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import SellerSidebar from "@/components/seller/SellerSidebar";
 import ProductList from "@/components/seller/ProductList";
@@ -93,6 +92,7 @@ const SellerDashboard = () => {
           });
           
           const data = await response.json();
+          console.log("Seller auth check response:", data);
           
           if (data.isAuthenticated) {
             setIsAuthenticated(true);
@@ -101,13 +101,16 @@ const SellerDashboard = () => {
             // Fetch products after confirming authentication
             fetchProducts();
           } else {
-            // If backend says not authenticated, clear localStorage
+            // If backend says not authenticated, clear localStorage and redirect to login
             localStorage.removeItem('isSellerAuthenticated');
             localStorage.removeItem('sellerEmail');
             setIsLoading(false);
+            navigate('/seller/login');
           }
         } else {
           setIsLoading(false);
+          // If no authentication in localStorage, redirect to login
+          navigate('/seller/login');
         }
       } catch (error) {
         console.error("Auth check error:", error);
@@ -116,7 +119,7 @@ const SellerDashboard = () => {
     };
 
     checkAuth();
-  }, []);
+  }, [navigate]);
 
   const handleLogout = async () => {
     try {
@@ -137,6 +140,8 @@ const SellerDashboard = () => {
         title: "Logged out",
         description: "You have been logged out successfully",
       });
+      
+      navigate('/seller/login');
     } catch (error) {
       console.error("Logout error:", error);
     }
@@ -186,6 +191,14 @@ const SellerDashboard = () => {
                       {messageCount}
                     </span>
                   )}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="gap-2"
+                  onClick={() => navigate('/seller/profile')}
+                >
+                  <User className="h-5 w-5" />
+                  Profile
                 </Button>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-600">{sellerEmail}</span>

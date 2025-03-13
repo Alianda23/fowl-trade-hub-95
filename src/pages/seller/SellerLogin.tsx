@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,7 +29,7 @@ const SellerLogin = () => {
         
         if (data.isAuthenticated) {
           console.log("User is authenticated, redirecting to seller dashboard");
-          navigate('/seller', { replace: true });
+          navigate('/seller/dashboard', { replace: true });
         } else {
           console.log("User is not authenticated");
         }
@@ -103,11 +102,10 @@ const SellerLogin = () => {
           localStorage.setItem('sellerId', data.seller_id.toString());
         }
         
-        // Force navigation to seller dashboard with replace to prevent back button issues
         console.log("Redirecting to seller dashboard...");
         setTimeout(() => {
           // Using a timeout to ensure state updates are processed
-          navigate('/seller', { replace: true });
+          navigate('/seller/dashboard', { replace: true });
         }, 100);
       } else {
         toast({

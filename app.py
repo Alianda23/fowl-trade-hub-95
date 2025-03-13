@@ -841,3 +841,7 @@ def get_cart():
     except Exception as e:
         print(f"Error fetching cart: {str(e)}")
         return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+
+# Add this at the very end of the file
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)

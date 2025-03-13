@@ -1,21 +1,23 @@
 
 import { createContext, useState, useContext, useEffect, ReactNode } from "react";
-import { Product } from "@/data/products";
 import { CartItem } from "./CartContext";
 
-// Define Order interface
+// Define Order interface with status types
 export interface Order {
   id: string;
   products: CartItem[];
-  status: string;
+  status: "Pending" | "Processing" | "Dispatched" | "Delivered" | "Cancelled";
   date: string;
   total: number;
+  sellerId?: string; // To track which seller the order belongs to
 }
 
 // Define the shape of our context
 interface OrdersContextType {
   orders: Order[];
   setOrders: React.Dispatch<React.SetStateAction<Order[]>>;
+  updateOrderStatus: (orderId: string, newStatus: Order["status"]) => void;
+  getSellerOrders: (sellerId: string) => Order[];
   showOrders: boolean;
   setShowOrders: (show: boolean) => void;
 }
@@ -46,9 +48,29 @@ export const OrdersProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('orders', JSON.stringify(orders));
   }, [orders]);
 
+  // Update order status
+  const updateOrderStatus = (orderId: string, newStatus: Order["status"]) => {
+    setOrders(
+      orders.map(order => 
+        order.id === orderId 
+          ? { ...order, status: newStatus } 
+          : order
+      )
+    );
+  };
+
+  // Get orders for a specific seller
+  const getSellerOrders = (sellerId: string) => {
+    return orders.filter(order => 
+      order.products.some(product => product.sellerId === sellerId)
+    );
+  };
+
   const value = {
     orders,
     setOrders,
+    updateOrderStatus,
+    getSellerOrders,
     showOrders,
     setShowOrders
   };

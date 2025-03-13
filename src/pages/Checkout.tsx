@@ -1,11 +1,15 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { initiateSTKPush } from "@/utils/mpesa";
 import { useNavigate } from "react-router-dom";
-import { Loader2, AlertTriangle, Info } from "lucide-react";
+import { Loader2, AlertTriangle, Info, ShoppingBag } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
+import { useOrders } from "@/contexts/OrdersContext";
+import { v4 as uuidv4 } from "uuid";
 
 const Checkout = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -15,6 +19,30 @@ const Checkout = () => {
   const [isServerConfigError, setIsServerConfigError] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { cart, removeFromCart, setShowCart } = useCart();
+  const { orders, setOrders } = useOrders();
+
+  // Calculate total from cart
+  const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+
+  const createOrder = () => {
+    // Create a new order from cart items
+    const newOrder = {
+      id: uuidv4(),
+      products: [...cart],
+      status: "Pending",
+      date: new Date().toISOString(),
+      total: cartTotal
+    };
+
+    // Add to orders
+    setOrders([newOrder, ...orders]);
+    
+    // Clear cart items one by one
+    cart.forEach(item => removeFromCart(item.id));
+    
+    return newOrder;
+  };
 
   const handleMpesaPayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,9 +62,7 @@ const Checkout = () => {
     setIsProcessing(true);
     
     try {
-      // For demonstration purposes, we're using a fixed amount
-      // In a real app, you'd calculate this from the cart items
-      const amount = 1; // Minimum amount for testing
+      const amount = cartTotal; // Use actual cart total
       
       toast({
         title: "Processing",
@@ -64,9 +90,12 @@ const Checkout = () => {
         // In a production app, you would poll the server to check payment status
         // For simplicity, we're simulating a successful payment after a delay
         setTimeout(() => {
+          // Create the order
+          const newOrder = createOrder();
+          
           toast({
             title: "Payment Successful",
-            description: "Your payment has been processed successfully!",
+            description: "Your order has been placed successfully!",
           });
           
           // Redirect to homepage after successful payment
@@ -105,9 +134,56 @@ const Checkout = () => {
     }
   };
 
+  // Display empty cart message if cart is empty
+  if (cart.length === 0) {
+    return (
+      <div className="container mx-auto max-w-2xl py-16 text-center">
+        <ShoppingBag className="mx-auto h-16 w-16 text-gray-400" />
+        <h1 className="mt-4 text-2xl font-bold">Your cart is empty</h1>
+        <p className="mt-2 text-gray-600">Add some items to your cart to checkout</p>
+        <Button 
+          className="mt-6"
+          onClick={() => navigate('/')}
+        >
+          Continue Shopping
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto max-w-2xl py-16">
       <h1 className="mb-8 text-3xl font-bold">Checkout</h1>
+      
+      <div className="mb-8 rounded-lg border p-6">
+        <h2 className="mb-4 text-xl font-semibold">Order Summary</h2>
+        
+        <div className="space-y-4">
+          {cart.map(item => (
+            <div key={item.id} className="flex items-center gap-4 border-b pb-4">
+              <img 
+                src={item.image?.startsWith('/static') ? `http://localhost:5000${item.image}` : item.image} 
+                alt={item.name} 
+                className="h-16 w-16 rounded-md object-cover"
+              />
+              <div className="flex-1">
+                <h3 className="font-medium">{item.name}</h3>
+                <p className="text-sm text-gray-600">
+                  KShs {item.price.toLocaleString()} × {item.quantity}
+                </p>
+              </div>
+              <p className="font-medium">
+                KShs {(item.price * item.quantity).toLocaleString()}
+              </p>
+            </div>
+          ))}
+        </div>
+        
+        <div className="mt-4 flex justify-between border-t pt-4">
+          <span className="font-bold">Total:</span>
+          <span className="font-bold">KShs {cartTotal.toLocaleString()}</span>
+        </div>
+      </div>
       
       <div className="rounded-lg border p-6">
         <h2 className="mb-6 text-xl font-semibold">Select Payment Method</h2>

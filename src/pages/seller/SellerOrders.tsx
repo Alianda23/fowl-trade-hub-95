@@ -27,7 +27,7 @@ const SellerOrders = () => {
     
     // Filter orders that contain products from this seller
     const filteredOrders = orders.filter(order => 
-      order.products.some(product => product.sellerId === sellerId)
+      order.items.some(item => item.sellerId === sellerId)
     );
     
     // Apply status filter if not "All"
@@ -160,13 +160,13 @@ const SellerOrders = () => {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
             {sellerOrders.map(order => {
               // Filter only this seller's products from the order
-              const sellerProducts = order.products.filter(
-                product => product.sellerId === sellerId
+              const sellerItems = order.items.filter(
+                item => item.sellerId === sellerId
               );
               
               // Calculate total for only this seller's products
-              const sellerTotal = sellerProducts.reduce(
-                (total, product) => total + product.price * product.quantity, 
+              const sellerTotal = sellerItems.reduce(
+                (total, item) => total + item.price * item.quantity, 
                 0
               );
               
@@ -191,21 +191,21 @@ const SellerOrders = () => {
                   </div>
                   
                   <div className="mb-4 space-y-4">
-                    {sellerProducts.map(product => (
-                      <div key={product.id} className="flex gap-3">
+                    {sellerItems.map(item => (
+                      <div key={item.id} className="flex gap-3">
                         <img
-                          src={getImageUrl(product.image)}
-                          alt={product.name}
+                          src={getImageUrl(item.image)}
+                          alt={item.name}
                           className="h-16 w-16 rounded-md object-cover"
                         />
                         <div className="flex flex-1 flex-col">
-                          <h3 className="font-medium">{product.name}</h3>
+                          <h3 className="font-medium">{item.name}</h3>
                           <div className="flex items-center justify-between">
                             <p className="text-sm text-gray-600">
-                              Qty: {product.quantity}
+                              Qty: {item.quantity}
                             </p>
                             <p className="text-sm font-medium">
-                              KShs {product.price.toLocaleString()}
+                              KShs {item.price.toLocaleString()}
                             </p>
                           </div>
                         </div>

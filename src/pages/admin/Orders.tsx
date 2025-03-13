@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Order, useOrders } from "@/contexts/OrdersContext";
 import { Clock, PackageCheck, Package, PackageX, ShoppingBag, AlertTriangle } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const OrdersPage = () => {
   const { orders, updateOrderStatus } = useOrders();
@@ -180,7 +180,7 @@ const OrdersPage = () => {
                     {new Date(order.date).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">
-                    {order.products.length} {order.products.length === 1 ? 'item' : 'items'}
+                    {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-sm font-medium">
                     KShs {order.total.toLocaleString()}
@@ -239,21 +239,21 @@ const OrdersPage = () => {
                 
                 <div className="mb-6 rounded-lg border">
                   <div className="divide-y">
-                    {selectedOrder.products.map(product => (
-                      <div key={product.id} className="flex p-3">
+                    {selectedOrder.items.map(item => (
+                      <div key={item.id} className="flex p-3">
                         <img
-                          src={getImageUrl(product.image)}
-                          alt={product.name}
+                          src={getImageUrl(item.image)}
+                          alt={item.name}
                           className="h-16 w-16 rounded-md object-cover"
                         />
                         <div className="ml-3 flex flex-1 flex-col">
-                          <h3 className="font-medium">{product.name}</h3>
+                          <h3 className="font-medium">{item.name}</h3>
                           <div className="mt-auto flex items-end justify-between">
                             <p className="text-sm text-gray-600">
-                              Qty: {product.quantity} × KShs {product.price.toLocaleString()}
+                              Qty: {item.quantity} × KShs {item.price.toLocaleString()}
                             </p>
                             <p className="text-sm font-medium">
-                              KShs {(product.price * product.quantity).toLocaleString()}
+                              KShs {(item.price * item.quantity).toLocaleString()}
                             </p>
                           </div>
                         </div>

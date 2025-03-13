@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -20,7 +19,7 @@ const Checkout = () => {
   const [isServerConfigError, setIsServerConfigError] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { cart, removeFromCart, setShowCart, clearCart } = useCart();
+  const { cart, clearCart, setShowCart } = useCart();
   const { orders, setOrders } = useOrders();
   const { isAuthenticated, userId } = useAuth();
 
@@ -31,8 +30,8 @@ const Checkout = () => {
     // Create a new order from cart items
     const newOrder: Order = {
       id: uuidv4(),
-      products: [...cart],
-      status: "Pending" as Order["status"],
+      items: [...cart],
+      status: "Pending",
       date: new Date().toISOString(),
       total: cartTotal,
       userId: userId || undefined

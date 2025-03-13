@@ -2,7 +2,7 @@
 import { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { Product } from "@/data/products";
 
-type CartItem = Product & { quantity: number };
+export type CartItem = Product & { quantity: number };
 
 interface CartContextType {
   cart: CartItem[];
@@ -11,6 +11,9 @@ interface CartContextType {
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
   cartTotal: number;
+  // Add missing properties
+  showCart: boolean;
+  setShowCart: (show: boolean) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -18,6 +21,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartTotal, setCartTotal] = useState(0);
+  const [showCart, setShowCart] = useState(false);
 
   // Load cart from localStorage on initial render
   useEffect(() => {
@@ -93,6 +97,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         removeFromCart,
         clearCart,
         cartTotal,
+        showCart,
+        setShowCart,
       }}
     >
       {children}

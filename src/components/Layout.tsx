@@ -14,7 +14,7 @@ interface LayoutProps {
 }
 
 const Layout = ({ children, searchQuery, setSearchQuery }: LayoutProps) => {
-  const { cart, showCart, setShowCart, removeFromCart, updateCartItemQuantity } = useCart();
+  const { cart, showCart, setShowCart, updateQuantity, removeFromCart } = useCart();
   const { orders, showOrders, setShowOrders } = useOrders();
   const { isAuthenticated, userEmail, handleLogout } = useAuth();
 
@@ -38,7 +38,7 @@ const Layout = ({ children, searchQuery, setSearchQuery }: LayoutProps) => {
         showCart={showCart}
         setShowCart={setShowCart}
         cart={cart}
-        updateQuantity={updateCartItemQuantity}
+        updateQuantity={updateQuantity}
         removeFromCart={removeFromCart}
       />
       

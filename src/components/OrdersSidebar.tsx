@@ -108,21 +108,21 @@ const OrdersSidebar = ({
                 </div>
 
                 <div className="space-y-3">
-                  {order.products.map((product) => (
-                    <div key={product.id} className="flex gap-3">
+                  {order.items.map((item) => (
+                    <div key={item.id} className="flex gap-3">
                       <img 
-                        src={getImageUrl(product.image)} 
-                        alt={product.name} 
+                        src={getImageUrl(item.image)} 
+                        alt={item.name} 
                         className="h-16 w-16 rounded-md object-cover" 
                       />
                       <div className="flex flex-1 flex-col">
-                        <h3 className="font-medium">{product.name}</h3>
+                        <h3 className="font-medium">{item.name}</h3>
                         <div className="flex items-center justify-between">
                           <p className="text-sm text-gray-600">
-                            Qty: {product.quantity}
+                            Qty: {item.quantity}
                           </p>
                           <p className="text-sm font-medium">
-                            KShs {product.price.toLocaleString()}
+                            KShs {item.price.toLocaleString()}
                           </p>
                         </div>
                       </div>

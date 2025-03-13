@@ -806,46 +806,6 @@ def test_get_users():
         print(f"Error fetching test users: {str(e)}")
         return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
-# Add these new models for cart and orders
-class CartItem(db.Model):
-    __tablename__ = 'cart_items'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.product_id'), nullable=False)
-    quantity = db.Column(db.Integer, nullable=False, default=1)
-    
-    user = db.relationship('User', backref=db.backref('cart_items', lazy=True))
-    product = db.relationship('Product', backref=db.backref('cart_items', lazy=True))
-    
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-class Order(db.Model):
-    __tablename__ = 'orders'
-    
-    order_id = db.Column(db.String(36), primary_key=True)  # UUID
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
-    total = db.Column(db.Float, nullable=False)
-    status = db.Column(db.String(20), nullable=False, default='Pending')
-    
-    user = db.relationship('User', backref=db.backref('orders', lazy=True))
-    
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-class OrderItem(db.Model):
-    __tablename__ = 'order_items'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    order_id = db.Column(db.String(36), db.ForeignKey('orders.order_id'), nullable=False)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.product_id'), nullable=False)
-    quantity = db.Column(db.Integer, nullable=False)
-    price = db.Column(db.Float, nullable=False)  # Price at time of purchase
-    
-    order = db.relationship('Order', backref=db.backref('items', lazy=True))
-    product = db.relationship('Product', backref=db.backref('order_items', lazy=True))
-
 # Add new routes for cart and orders
 @app.route('/api/cart', methods=['GET'])
 def get_cart():
@@ -879,4 +839,5 @@ def get_cart():
         })
     
     except Exception as e:
-        print(f"
+        print(f"Error fetching cart: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})

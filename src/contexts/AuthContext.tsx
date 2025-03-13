@@ -1,7 +1,5 @@
 
 import { createContext, useState, useContext, useEffect, ReactNode } from "react";
-import { useCart } from "./CartContext";
-import { useOrders } from "./OrdersContext";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -19,8 +17,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
-  const { clearCart } = useCart();
-  const { setOrders } = useOrders();
 
   useEffect(() => {
     // Check if user is authenticated on initial render
@@ -54,9 +50,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUserEmail(null);
       setUserId(null);
       
-      // Clear cart and orders
-      clearCart();
-      setOrders([]);
+      // We'll handle cart and orders clearing in the respective contexts
+      // This removes the circular dependency
       
     } catch (error) {
       console.error("Logout error:", error);

@@ -1,9 +1,9 @@
 
 import { BrowserRouter as Router } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { OrdersProvider } from "@/contexts/OrdersContext";
-import { AuthProvider } from "@/contexts/AuthContext";
 import AppRoutes from "@/routes/AppRoutes";
 
 import "./App.css";

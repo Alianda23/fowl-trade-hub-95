@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,7 +30,7 @@ const AdminLogin = () => {
         
         if (data.isAuthenticated) {
           console.log("Admin is authenticated, redirecting to dashboard");
-          navigate('/admin/dashboard', { replace: true });
+          navigate('/admin', { replace: true });
         } else {
           console.log("Admin is not authenticated");
         }
@@ -106,11 +107,11 @@ const AdminLogin = () => {
           localStorage.setItem('adminDepartment', data.department);
         }
         
-        // Modified: Fix the navigation path to use /admin/dashboard instead of /admin
+        // Force navigation to admin dashboard with replace to prevent back button issues
         console.log("Redirecting to admin dashboard...");
         setTimeout(() => {
           // Using a timeout to ensure state updates are processed
-          navigate('/admin/dashboard', { replace: true });
+          navigate('/admin', { replace: true });
         }, 100);
       } else {
         toast({

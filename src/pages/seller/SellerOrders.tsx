@@ -1,280 +1,253 @@
 
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import SellerSidebar from "@/components/seller/SellerSidebar";
 import { Button } from "@/components/ui/button";
+import SellerSidebar from "@/components/seller/SellerSidebar";
+import { 
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Truck, XCircle, ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Order, useOrders } from "@/contexts/OrdersContext";
-import { Clock, PackageCheck, Package, PackageX, ShoppingBag, AlertTriangle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+
+interface Order {
+  id: string;
+  customerName: string;
+  product: string;
+  quantity: number;
+  total: number;
+  status: 'pending' | 'dispatched' | 'cancelled' | 'collected';
+  date: string;
+}
 
 const SellerOrders = () => {
-  const { orders, updateOrderStatus } = useOrders();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [sellerOrders, setSellerOrders] = useState<Order[]>([]);
-  const [selectedStatus, setSelectedStatus] = useState<string>("All");
-  
-  // Get seller ID from localStorage
-  const sellerId = localStorage.getItem("sellerId");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    if (!sellerId) {
-      // Redirect to seller login if not authenticated
-      navigate("/seller/login");
+    const checkAuth = async () => {
+      try {
+        // Check if user is authenticated in localStorage
+        const storedAuth = localStorage.getItem('isSellerAuthenticated');
+        const storedEmail = localStorage.getItem('sellerEmail');
+        
+        if (storedAuth === 'true' && storedEmail) {
+          // Verify with backend
+          const response = await fetch('http://localhost:5000/api/seller/check-auth', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include'
+          });
+          
+          const data = await response.json();
+          
+          if (data.isAuthenticated) {
+            setIsAuthenticated(true);
+          } else {
+            // If backend says not authenticated, clear localStorage
+            localStorage.removeItem('isSellerAuthenticated');
+            localStorage.removeItem('sellerEmail');
+          }
+        }
+      } catch (error) {
+        console.error("Auth check error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, [navigate, toast]);
+  
+  // This would typically come from your backend
+  const orders: Order[] = [
+    {
+      id: "1",
+      customerName: "John Doe",
+      product: "Day-old Chicks",
+      quantity: 50,
+      total: 5000,
+      status: 'pending',
+      date: "2024-02-20"
+    }
+  ];
+
+  const handleDispatch = (orderId: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to dispatch orders",
+        variant: "destructive",
+      });
       return;
     }
     
-    // Filter orders that contain products from this seller
-    const filteredOrders = orders.filter(order => 
-      order.items.some(item => item.sellerId === sellerId)
-    );
-    
-    // Apply status filter if not "All"
-    const statusFilteredOrders = selectedStatus === "All" 
-      ? filteredOrders 
-      : filteredOrders.filter(order => order.status === selectedStatus);
-    
-    setSellerOrders(statusFilteredOrders);
-  }, [orders, sellerId, navigate, selectedStatus]);
-  
-  const handleStatusChange = (orderId: string, newStatus: Order["status"]) => {
-    updateOrderStatus(orderId, newStatus);
-    
+    // Here you would update the order status in your backend
     toast({
-      title: "Order Updated",
-      description: `Order status changed to ${newStatus}`,
+      title: "Order Dispatched",
+      description: `Order #${orderId} has been marked as dispatched.`,
     });
   };
-  
-  const getStatusIcon = (status: Order["status"]) => {
-    switch (status) {
-      case "Pending":
-        return <Clock className="h-4 w-4" />;
-      case "Processing":
-        return <Package className="h-4 w-4" />;
-      case "Dispatched":
-        return <PackageCheck className="h-4 w-4" />;
-      case "Delivered":
-        return <ShoppingBag className="h-4 w-4" />;
-      case "Cancelled":
-        return <PackageX className="h-4 w-4" />;
-      default:
-        return <Clock className="h-4 w-4" />;
+
+  const handleCancel = (orderId: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to cancel orders",
+        variant: "destructive",
+      });
+      return;
     }
+    
+    // Here you would update the order status in your backend
+    toast({
+      title: "Order Cancelled",
+      description: `Order #${orderId} has been cancelled.`,
+    });
   };
-  
-  const getStatusColor = (status: Order["status"]) => {
-    switch (status) {
-      case "Pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "Processing":
-        return "bg-blue-100 text-blue-800";
-      case "Dispatched":
-        return "bg-green-100 text-green-800";
-      case "Delivered":
-        return "bg-green-200 text-green-900";
-      case "Cancelled":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
+
+  const getStatusBadge = (status: Order['status']) => {
+    const statusStyles = {
+      pending: "bg-yellow-100 text-yellow-800",
+      dispatched: "bg-blue-100 text-blue-800",
+      cancelled: "bg-red-100 text-red-800",
+      collected: "bg-green-100 text-green-800"
+    };
+
+    return (
+      <Badge variant="outline" className={statusStyles[status]}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
   };
-  
-  // Fix image URL if it starts with /static
-  const getImageUrl = (imagePath: string) => {
-    if (imagePath?.startsWith('/static')) {
-      return `http://localhost:5000${imagePath}`;
-    }
-    return imagePath;
-  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-sage-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen">
       <SellerSidebar />
       
-      <div className="flex-1 p-8">
-        <h1 className="mb-6 text-2xl font-bold">Manage Orders</h1>
-        
-        <div className="mb-6 flex flex-wrap gap-2">
-          <Button
-            variant={selectedStatus === "All" ? "default" : "outline"}
-            onClick={() => setSelectedStatus("All")}
-            className="text-sm"
-          >
-            All
-          </Button>
-          <Button
-            variant={selectedStatus === "Pending" ? "default" : "outline"}
-            onClick={() => setSelectedStatus("Pending")}
-            className="text-sm"
-          >
-            <Clock className="mr-1 h-4 w-4" />
-            Pending
-          </Button>
-          <Button
-            variant={selectedStatus === "Processing" ? "default" : "outline"}
-            onClick={() => setSelectedStatus("Processing")}
-            className="text-sm"
-          >
-            <Package className="mr-1 h-4 w-4" />
-            Processing
-          </Button>
-          <Button
-            variant={selectedStatus === "Dispatched" ? "default" : "outline"}
-            onClick={() => setSelectedStatus("Dispatched")}
-            className="text-sm"
-          >
-            <PackageCheck className="mr-1 h-4 w-4" />
-            Dispatched
-          </Button>
-          <Button
-            variant={selectedStatus === "Delivered" ? "default" : "outline"}
-            onClick={() => setSelectedStatus("Delivered")}
-            className="text-sm"
-          >
-            <ShoppingBag className="mr-1 h-4 w-4" />
-            Delivered
-          </Button>
-          <Button
-            variant={selectedStatus === "Cancelled" ? "default" : "outline"}
-            onClick={() => setSelectedStatus("Cancelled")}
-            className="text-sm"
-          >
-            <PackageX className="mr-1 h-4 w-4" />
-            Cancelled
-          </Button>
+      <main className="flex-1 bg-gray-50">
+        <div className="border-b bg-white p-6">
+          <div className="mb-4 flex items-center gap-4">
+            <Button variant="ghost" onClick={() => navigate("/seller")}>
+              <ArrowLeft className="h-5 w-5" />
+              Back
+            </Button>
+            <h1 className="text-2xl font-bold">Orders</h1>
+          </div>
+          <p className="text-sm text-gray-600">Manage your customer orders</p>
+          
+          {!isAuthenticated && (
+            <div className="mt-4 rounded-md bg-yellow-50 p-3 text-yellow-800">
+              <p>Sign in to manage orders</p>
+            </div>
+          )}
         </div>
-        
-        {sellerOrders.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-8 text-center">
-            <AlertTriangle className="mx-auto h-12 w-12 text-gray-300" />
-            <h2 className="mt-2 text-xl font-medium">No orders found</h2>
-            <p className="mt-1 text-gray-500">
-              {selectedStatus === "All" 
-                ? "You don't have any orders yet."
-                : `You don't have any ${selectedStatus.toLowerCase()} orders.`}
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-            {sellerOrders.map(order => {
-              // Filter only this seller's products from the order
-              const sellerItems = order.items.filter(
-                item => item.sellerId === sellerId
-              );
-              
-              // Calculate total for only this seller's products
-              const sellerTotal = sellerItems.reduce(
-                (total, item) => total + item.price * item.quantity, 
-                0
-              );
-              
-              return (
-                <div key={order.id} className="rounded-lg border p-6 shadow-sm">
-                  <div className="mb-4 flex items-center justify-between">
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">
-                        Order #{order.id.slice(0, 8)}
-                      </span>
-                      <p className="text-xs text-gray-500">
-                        {new Date(order.date).toLocaleString()}
-                      </p>
-                    </div>
-                    <Badge 
-                      className={`flex items-center gap-1 ${getStatusColor(order.status)}`}
-                      variant="outline"
-                    >
-                      {getStatusIcon(order.status)}
-                      {order.status}
-                    </Badge>
-                  </div>
-                  
-                  <div className="mb-4 space-y-4">
-                    {sellerItems.map(item => (
-                      <div key={item.id} className="flex gap-3">
-                        <img
-                          src={getImageUrl(item.image)}
-                          alt={item.name}
-                          className="h-16 w-16 rounded-md object-cover"
-                        />
-                        <div className="flex flex-1 flex-col">
-                          <h3 className="font-medium">{item.name}</h3>
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm text-gray-600">
-                              Qty: {item.quantity}
-                            </p>
-                            <p className="text-sm font-medium">
-                              KShs {item.price.toLocaleString()}
-                            </p>
-                          </div>
+
+        <div className="p-6">
+          {orders.length === 0 ? (
+            <div className="rounded-lg border bg-white p-8 text-center">
+              <p className="text-gray-500">No orders yet</p>
+            </div>
+          ) : (
+            <div className="rounded-lg border bg-white">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Quantity</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell>#{order.id}</TableCell>
+                      <TableCell>{order.customerName}</TableCell>
+                      <TableCell>{order.product}</TableCell>
+                      <TableCell>{order.quantity}</TableCell>
+                      <TableCell>KES {order.total.toLocaleString()}</TableCell>
+                      <TableCell>{getStatusBadge(order.status)}</TableCell>
+                      <TableCell>{order.date}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          {order.status === 'pending' && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1"
+                                onClick={() => handleDispatch(order.id)}
+                                disabled={!isAuthenticated}
+                              >
+                                <Truck className="h-4 w-4" />
+                                Dispatch
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1 text-red-600 hover:bg-red-50"
+                                onClick={() => handleCancel(order.id)}
+                                disabled={!isAuthenticated}
+                              >
+                                <XCircle className="h-4 w-4" />
+                                Cancel
+                              </Button>
+                            </>
+                          )}
+                          {!isAuthenticated && order.status === 'pending' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1"
+                              onClick={() => navigate('/seller/login')}
+                            >
+                              Sign In to Manage
+                            </Button>
+                          )}
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="mb-4 flex justify-between border-t pt-3">
-                    <span className="font-medium">Subtotal:</span>
-                    <span className="font-bold">
-                      KShs {sellerTotal.toLocaleString()}
-                    </span>
-                  </div>
-                  
-                  {/* Order Actions */}
-                  <div className="flex flex-wrap gap-2">
-                    {order.status === "Pending" && (
-                      <>
-                        <Button 
-                          size="sm"
-                          variant="outline"
-                          className="border-blue-500 text-blue-500 hover:bg-blue-50"
-                          onClick={() => handleStatusChange(order.id, "Processing")}
-                        >
-                          <Package className="mr-1 h-4 w-4" />
-                          Process
-                        </Button>
-                        <Button 
-                          size="sm"
-                          variant="outline"
-                          className="border-red-500 text-red-500 hover:bg-red-50"
-                          onClick={() => handleStatusChange(order.id, "Cancelled")}
-                        >
-                          <PackageX className="mr-1 h-4 w-4" />
-                          Cancel
-                        </Button>
-                      </>
-                    )}
-                    
-                    {order.status === "Processing" && (
-                      <Button 
-                        size="sm"
-                        variant="outline"
-                        className="border-green-500 text-green-500 hover:bg-green-50"
-                        onClick={() => handleStatusChange(order.id, "Dispatched")}
-                      >
-                        <PackageCheck className="mr-1 h-4 w-4" />
-                        Dispatch
-                      </Button>
-                    )}
-                    
-                    {order.status === "Dispatched" && (
-                      <Button 
-                        size="sm"
-                        variant="outline"
-                        className="border-green-600 text-green-600 hover:bg-green-50"
-                        onClick={() => handleStatusChange(order.id, "Delivered")}
-                      >
-                        <ShoppingBag className="mr-1 h-4 w-4" />
-                        Mark Delivered
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+          
+          {!isAuthenticated && (
+            <div className="mt-8 rounded-lg border bg-sage-50 p-6 text-center">
+              <h3 className="mb-2 text-lg font-medium">Want to manage orders?</h3>
+              <p className="mb-4 text-gray-600">Sign in or create a seller account to manage orders</p>
+              <div className="flex justify-center gap-4">
+                <Button onClick={() => navigate('/seller/login')}>Sign In</Button>
+                <Button variant="outline" onClick={() => navigate('/seller/signup')}>Create Account</Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

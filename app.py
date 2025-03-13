@@ -1,12 +1,11 @@
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
-from models import db, User, SellerProfile, AdminProfile, Product, Message, CartItem, Order, OrderItem
+from models import db, User, SellerProfile, AdminProfile, Product, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
 from app_auth import check_admin_auth, check_seller_auth
-from routes.mpesa import mpesa_routes
-import uuid
+from src.routes.mpesa import mpesa_routes
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/kukuhub'
@@ -25,7 +24,6 @@ db.init_app(app)
 # Register blueprints
 app.register_blueprint(mpesa_routes, url_prefix='/api/mpesa')
 
-# User registration and authentication routes
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
@@ -92,13 +90,6 @@ def check_auth():
     
     return jsonify({'isAuthenticated': False})
 
-@app.route('/api/logout', methods=['POST'])
-def logout():
-    # Clear the session
-    session.clear()
-    return jsonify({'success': True, 'message': 'Logged out successfully'})
-
-# Seller routes
 @app.route('/api/seller/register', methods=['POST'])
 def seller_register():
     data = request.json
@@ -158,48 +149,6 @@ def seller_login():
 def seller_auth_check():
     return check_seller_auth()
 
-@app.route('/api/seller/update-profile', methods=['PUT'])
-def update_seller_profile():
-    """Update seller profile information"""
-    # First check if seller is authenticated
-    auth_check = check_seller_auth()
-    auth_data = auth_check.get_json()
-    
-    if not auth_data.get('isAuthenticated'):
-        return jsonify({'success': False, 'message': 'Seller not authenticated'})
-    
-    try:
-        seller_id = auth_data.get('seller_id')
-        seller = SellerProfile.query.get(seller_id)
-        
-        if not seller:
-            return jsonify({'success': False, 'message': 'Seller not found'})
-        
-        data = request.json
-        
-        # Update fields
-        if 'username' in data:
-            seller.username = data['username']
-        if 'business_name' in data:
-            seller.business_name = data['business_name']
-        if 'business_description' in data:
-            seller.business_description = data['business_description']
-        if 'phone_number' in data:
-            seller.phone_number = data['phone_number']
-        
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Profile updated successfully'
-        })
-    
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error updating seller profile: {str(e)}")
-        return jsonify({'success': False, 'message': f'Update failed: {str(e)}'})
-
-# Admin routes
 @app.route('/api/admin/login', methods=['POST'])
 def admin_login():
     data = request.json
@@ -227,75 +176,13 @@ def admin_login():
 def admin_auth_check():
     return check_admin_auth()
 
-@app.route('/api/admin/update-profile', methods=['PUT'])
-def update_admin_profile():
-    """Update admin profile information"""
-    # First check if admin is authenticated
-    auth_check = check_admin_auth()
-    auth_data = auth_check.get_json()
-    
-    if not auth_data.get('isAuthenticated'):
-        return jsonify({'success': False, 'message': 'Admin not authenticated'})
-    
-    try:
-        admin_id = auth_data.get('admin_id')
-        admin = AdminProfile.query.get(admin_id)
-        
-        if not admin:
-            return jsonify({'success': False, 'message': 'Admin not found'})
-        
-        data = request.json
-        
-        # Update fields
-        if 'username' in data:
-            admin.username = data['username']
-        if 'department' in data:
-            admin.department = data['department']
-        if 'phone_number' in data:
-            admin.phone_number = data['phone_number']
-        
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Profile updated successfully'
-        })
-    
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error updating admin profile: {str(e)}")
-        return jsonify({'success': False, 'message': f'Update failed: {str(e)}'})
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    # Clear the session
+    session.clear()
+    return jsonify({'success': True, 'message': 'Logged out successfully'})
 
-@app.route('/api/admin/products/<product_id>', methods=['DELETE'])
-def admin_delete_product(product_id):
-    """Admin delete a product"""
-    # First check if admin is authenticated
-    auth_check = check_admin_auth()
-    auth_data = auth_check.get_json()
-    
-    if not auth_data.get('isAuthenticated'):
-        return jsonify({'success': False, 'message': 'Admin not authenticated'})
-    
-    try:
-        product = Product.query.get(product_id)
-        
-        if not product:
-            return jsonify({'success': False, 'message': 'Product not found'})
-        
-        db.session.delete(product)
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Product deleted successfully by admin'
-        })
-    
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error deleting product: {str(e)}")
-        return jsonify({'success': False, 'message': f'Error deleting product: {str(e)}'})
-
-# Product routes
+# New Product Endpoints
 @app.route('/api/products', methods=['GET'])
 def get_products():
     """Get all products for public viewing"""
@@ -482,90 +369,6 @@ def add_product():
         print(f"Error adding product: {str(e)}")
         return jsonify({'success': False, 'message': f'Error adding product: {str(e)}'})
 
-@app.route('/api/products/<product_id>', methods=['PUT'])
-def update_product(product_id):
-    """Update product details (seller only)"""
-    # First check if seller is authenticated
-    auth_check = check_seller_auth()
-    auth_data = auth_check.get_json()
-    
-    if not auth_data.get('isAuthenticated'):
-        return jsonify({'success': False, 'message': 'Seller not authenticated'})
-    
-    try:
-        seller_id = auth_data.get('seller_id')
-        product = Product.query.get(product_id)
-        
-        if not product:
-            return jsonify({'success': False, 'message': 'Product not found'})
-        
-        # Verify product belongs to the seller
-        if product.seller_id != int(seller_id):
-            return jsonify({'success': False, 'message': 'You do not own this product'})
-        
-        data = request.json
-        
-        # Update fields
-        if 'name' in data:
-            product.name = data['name']
-        if 'description' in data:
-            product.description = data['description']
-        if 'price' in data:
-            product.price = float(data['price'])
-        if 'stock' in data:
-            product.stock = int(data['stock'])
-        if 'category' in data:
-            product.category = data['category']
-        if 'image' in data and data['image']:
-            product.image_url = data['image']
-            
-        product.updated_at = datetime.utcnow()
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Product updated successfully',
-        })
-    
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error updating product: {str(e)}")
-        return jsonify({'success': False, 'message': f'Error updating product: {str(e)}'})
-
-@app.route('/api/products/<product_id>', methods=['DELETE'])
-def delete_product(product_id):
-    """Delete a product (seller only)"""
-    # First check if seller is authenticated
-    auth_check = check_seller_auth()
-    auth_data = auth_check.get_json()
-    
-    if not auth_data.get('isAuthenticated'):
-        return jsonify({'success': False, 'message': 'Seller not authenticated'})
-    
-    try:
-        seller_id = auth_data.get('seller_id')
-        product = Product.query.get(product_id)
-        
-        if not product:
-            return jsonify({'success': False, 'message': 'Product not found'})
-        
-        # Verify this product belongs to the seller
-        if product.seller_id != int(seller_id):
-            return jsonify({'success': False, 'message': 'You do not own this product'})
-        
-        db.session.delete(product)
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Product deleted successfully'
-        })
-    
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error deleting product: {str(e)}")
-        return jsonify({'success': False, 'message': f'Error deleting product: {str(e)}'})
-
 @app.route('/api/upload/product-image', methods=['POST'])
 def upload_product_image():
     """Upload a product image and return the URL"""
@@ -602,6 +405,40 @@ def upload_product_image():
     except Exception as e:
         print(f"Error uploading image: {str(e)}")
         return jsonify({'success': False, 'message': f'Error uploading image: {str(e)}'})
+
+@app.route('/api/products/<product_id>', methods=['DELETE'])
+def delete_product(product_id):
+    """Delete a product (seller only)"""
+    # First check if seller is authenticated
+    auth_check = check_seller_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Seller not authenticated'})
+    
+    try:
+        seller_id = auth_data.get('seller_id')
+        product = Product.query.get(product_id)
+        
+        if not product:
+            return jsonify({'success': False, 'message': 'Product not found'})
+        
+        # Verify this product belongs to the seller
+        if product.seller_id != int(seller_id):
+            return jsonify({'success': False, 'message': 'You do not own this product'})
+        
+        db.session.delete(product)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Product deleted successfully'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting product: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error deleting product: {str(e)}'})
 
 # Message Endpoints
 @app.route('/api/messages/send', methods=['POST'])
@@ -708,30 +545,7 @@ def mark_message_read(message_id):
         print(f"Error marking message as read: {str(e)}")
         return jsonify({'success': False, 'message': f'Error marking message as read: {str(e)}'})
 
-@app.route('/api/seller/messages/count', methods=['GET'])
-def get_seller_message_count():
-    """Get count of unread messages for the authenticated seller"""
-    # Check if seller is authenticated
-    auth_check = check_seller_auth()
-    auth_data = auth_check.get_json()
-    
-    if not auth_data.get('isAuthenticated'):
-        return jsonify({'success': False, 'message': 'Seller not authenticated'})
-    
-    try:
-        seller_id = auth_data.get('seller_id')
-        unread_count = Message.query.filter_by(seller_id=seller_id, is_read=False).count()
-        
-        return jsonify({
-            'success': True,
-            'count': unread_count
-        })
-    
-    except Exception as e:
-        print(f"Error fetching message count: {str(e)}")
-        return jsonify({'success': False, 'message': f'Error fetching message count: {str(e)}'})
-
-# Admin endpoints
+# Admin Endpoints
 @app.route('/api/admin/users', methods=['GET'])
 def get_all_users():
     """Get all users (admin only)"""
@@ -781,7 +595,7 @@ def get_all_users():
         print(f"Error fetching users: {str(e)}")
         return jsonify({'success': False, 'message': f'Error fetching users: {str(e)}'})
 
-# For testing
+# For testing without authentication
 @app.route('/api/test/users', methods=['GET'])
 def test_get_users():
     """Test endpoint to get users without authentication"""
@@ -806,42 +620,5 @@ def test_get_users():
         print(f"Error fetching test users: {str(e)}")
         return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
-# Add new routes for cart and orders
-@app.route('/api/cart', methods=['GET'])
-def get_cart():
-    """Get cart items for the authenticated user"""
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'message': 'User not authenticated'})
-    
-    try:
-        user_id = session['user_id']
-        cart_items = CartItem.query.filter_by(user_id=user_id).all()
-        cart = []
-        
-        for item in cart_items:
-            product = Product.query.get(item.product_id)
-            seller = SellerProfile.query.get(product.seller_id)
-            
-            cart.append({
-                'id': str(product.product_id),
-                'name': product.name,
-                'description': product.description,
-                'price': product.price,
-                'image': product.image_url,
-                'quantity': item.quantity,
-                'sellerId': str(product.seller_id),
-                'sellerName': seller.business_name if seller else "Unknown"
-            })
-        
-        return jsonify({
-            'success': True,
-            'cart': cart
-        })
-    
-    except Exception as e:
-        print(f"Error fetching cart: {str(e)}")
-        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
-
-# Add this at the very end of the file
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(debug=True)

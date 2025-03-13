@@ -12,7 +12,6 @@ export const initiateSTKPush = async (phoneNumber: string, amount: number): Prom
   success: boolean;
   message: string;
   checkoutRequestID?: string;
-  error?: any;
 }> => {
   try {
     // Format phone number - ensure it starts with 254
@@ -20,8 +19,6 @@ export const initiateSTKPush = async (phoneNumber: string, amount: number): Prom
     if (phoneNumber.startsWith('0')) {
       formattedPhone = '254' + phoneNumber.substring(1);
     }
-    
-    console.log(`Initiating STK push to ${formattedPhone} for amount ${amount}`);
     
     // Call backend endpoint to initiate STK push
     const response = await fetch('http://localhost:5000/api/mpesa/stkpush', {
@@ -37,43 +34,6 @@ export const initiateSTKPush = async (phoneNumber: string, amount: number): Prom
     });
     
     const data = await response.json();
-    console.log('M-Pesa API response:', data);
-    
-    if (!response.ok) {
-      // Extract the most helpful error message for the user
-      let errorMessage = data.message || `Request failed with status ${response.status}`;
-      
-      // Special handling for 503 Service Unavailable
-      if (response.status === 503) {
-        errorMessage = "Payment service is currently unavailable. Please try again later.";
-      }
-      
-      // Check if details contain a more specific error
-      if (data.details && typeof data.details === 'string') {
-        try {
-          // Try to parse the details if it's a JSON string
-          const errorDetails = JSON.parse(data.details);
-          if (errorDetails.errorMessage) {
-            if (errorDetails.errorMessage.includes('Invalid CallBackURL')) {
-              errorMessage = "Payment server configuration error: Invalid callback URL. This is a server configuration issue, not a problem with your phone number or payment details.";
-            } else {
-              errorMessage = `M-Pesa Error: ${errorDetails.errorMessage}`;
-            }
-          }
-        } catch (e) {
-          // If it's not JSON, just use the string
-          if (data.details.includes('Invalid CallBackURL')) {
-            errorMessage = "Payment server configuration issue: Invalid callback URL. Please contact support.";
-          }
-        }
-      }
-      
-      return {
-        success: false,
-        message: errorMessage,
-        error: data
-      };
-    }
     
     return {
       success: data.success,
@@ -84,8 +44,7 @@ export const initiateSTKPush = async (phoneNumber: string, amount: number): Prom
     console.error('M-Pesa STK push error:', error);
     return {
       success: false,
-      message: 'Unable to connect to payment service. Please check your internet connection and try again.',
-      error: error
+      message: 'Failed to initiate payment. Please try again.'
     };
   }
 };

@@ -6,12 +6,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { setIsAuthenticated, setUserEmail } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({
     email: "",
@@ -76,10 +74,6 @@ const Login = () => {
                 // Store user info in localStorage for frontend state management
                 localStorage.setItem('isAuthenticated', 'true');
                 localStorage.setItem('userEmail', email);
-                
-                // Update auth context
-                setIsAuthenticated(true);
-                setUserEmail(email);
                 
                 toast({
                   title: "Login successful",

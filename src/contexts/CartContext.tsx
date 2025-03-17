@@ -1,6 +1,8 @@
 
 import { createContext, useState, useContext, useEffect, ReactNode } from "react";
 import { Product } from "@/data/products";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export type CartItem = Product & { quantity: number };
 
@@ -11,7 +13,6 @@ interface CartContextType {
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
   cartTotal: number;
-  // Add missing properties
   showCart: boolean;
   setShowCart: (show: boolean) => void;
 }
@@ -22,21 +23,28 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartTotal, setCartTotal] = useState(0);
   const [showCart, setShowCart] = useState(false);
+  const { isAuthenticated, userId } = useAuth();
 
-  // Load cart from localStorage on initial render
+  // Load cart from localStorage and/or database on initial render
   useEffect(() => {
-    const savedCart = localStorage.getItem("cart");
-    if (savedCart) {
-      try {
-        setCart(JSON.parse(savedCart));
-      } catch (error) {
-        console.error("Error parsing cart from localStorage:", error);
-        localStorage.removeItem("cart");
+    if (isAuthenticated) {
+      // If authenticated, fetch cart from database
+      fetchCartFromDatabase();
+    } else {
+      // If not authenticated, load from localStorage
+      const savedCart = localStorage.getItem("cart");
+      if (savedCart) {
+        try {
+          setCart(JSON.parse(savedCart));
+        } catch (error) {
+          console.error("Error parsing cart from localStorage:", error);
+          localStorage.removeItem("cart");
+        }
       }
     }
-  }, []);
+  }, [isAuthenticated, userId]);
 
-  // Update cartTotal whenever cart changes
+  // Update cartTotal whenever cart changes and save to localStorage/database
   useEffect(() => {
     const total = cart.reduce(
       (sum, item) => sum + item.price * item.quantity,
@@ -44,9 +52,57 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     );
     setCartTotal(Number(total.toFixed(2)));
     
-    // Save cart to localStorage
+    // Save cart to localStorage for non-authenticated users
     localStorage.setItem("cart", JSON.stringify(cart));
-  }, [cart]);
+    
+    // If authenticated, save to database
+    if (isAuthenticated && cart.length > 0) {
+      saveCartToDatabase();
+    }
+  }, [cart, isAuthenticated]);
+
+  const fetchCartFromDatabase = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const response = await fetch('http://localhost:5000/api/cart', {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.cart) {
+          setCart(data.cart);
+        }
+      } else {
+        console.error("Failed to fetch cart");
+      }
+    } catch (error) {
+      console.error("Error fetching cart:", error);
+    }
+  };
+
+  const saveCartToDatabase = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const response = await fetch('http://localhost:5000/api/cart/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ items: cart }),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        console.error("Failed to save cart to database");
+      }
+    } catch (error) {
+      console.error("Error saving cart to database:", error);
+    }
+  };
 
   const addToCart = (product: Product) => {
     setCart((prevCart) => {
@@ -54,13 +110,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       
       if (existingItem) {
         // If product already in cart, increase quantity
-        return prevCart.map((item) =>
+        const updatedCart = prevCart.map((item) =>
           item.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
+        
+        // Show toast notification
+        toast.success(`Added another ${product.name} to cart`);
+        return updatedCart;
       } else {
         // Add new product to cart
+        toast.success(`${product.name} added to cart`);
         return [...prevCart, { ...product, quantity: 1 }];
       }
     });
@@ -80,12 +141,30 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const removeFromCart = (productId: string) => {
-    setCart((prevCart) => prevCart.filter((item) => item.id !== productId));
+    setCart((prevCart) => {
+      const itemToRemove = prevCart.find((item) => item.id === productId);
+      if (itemToRemove) {
+        toast.success(`${itemToRemove.name} removed from cart`);
+      }
+      return prevCart.filter((item) => item.id !== productId);
+    });
   };
 
   const clearCart = () => {
     setCart([]);
     localStorage.removeItem("cart");
+    
+    // If authenticated, clear cart in database
+    if (isAuthenticated) {
+      try {
+        fetch('http://localhost:5000/api/cart/clear', {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+      } catch (error) {
+        console.error("Error clearing cart in database:", error);
+      }
+    }
   };
 
   return (

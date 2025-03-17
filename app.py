@@ -820,18 +820,20 @@ def get_cart():
         
         for item in cart_items:
             product = Product.query.get(item.product_id)
-            seller = SellerProfile.query.get(product.seller_id)
-            
-            cart.append({
-                'id': str(product.product_id),
-                'name': product.name,
-                'description': product.description,
-                'price': product.price,
-                'image': product.image_url,
-                'quantity': item.quantity,
-                'sellerId': str(product.seller_id),
-                'sellerName': seller.business_name if seller else "Unknown"
-            })
+            if product:
+                seller = SellerProfile.query.get(product.seller_id)
+                
+                cart.append({
+                    'id': str(product.product_id),
+                    'name': product.name,
+                    'description': product.description,
+                    'price': product.price,
+                    'image': product.image_url,
+                    'quantity': item.quantity,
+                    'sellerId': str(product.seller_id),
+                    'sellerName': seller.business_name if seller else "Unknown",
+                    'category': product.category
+                })
         
         return jsonify({
             'success': True,
@@ -842,6 +844,63 @@ def get_cart():
         print(f"Error fetching cart: {str(e)}")
         return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
+@app.route('/api/cart/update', methods=['POST'])
+def update_cart():
+    """Update cart items for the authenticated user"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'User not authenticated'})
+    
+    try:
+        user_id = session['user_id']
+        data = request.json
+        
+        # Clear existing cart items for this user
+        CartItem.query.filter_by(user_id=user_id).delete()
+        
+        # Add new cart items
+        for item in data['items']:
+            cart_item = CartItem(
+                user_id=user_id,
+                product_id=int(item['id']),
+                quantity=item['quantity']
+            )
+            db.session.add(cart_item)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Cart updated successfully'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating cart: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error updating cart: {str(e)}'})
+
+@app.route('/api/cart/clear', methods=['DELETE'])
+def clear_cart():
+    """Clear all cart items for the authenticated user"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'User not authenticated'})
+    
+    try:
+        user_id = session['user_id']
+        
+        # Delete all cart items for this user
+        CartItem.query.filter_by(user_id=user_id).delete()
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Cart cleared successfully'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error clearing cart: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error clearing cart: {str(e)}'})
+
 # Order endpoints
 @app.route('/api/orders/create', methods=['POST'])
 def create_order():
@@ -850,59 +909,4 @@ def create_order():
         return jsonify({'success': False, 'message': 'User not authenticated'})
     
     try:
-        data = request.json
-        user_id = session['user_id']
-        
-        # Create new order in database
-        new_order = Order(
-            order_id=data.get('order_id', str(uuid.uuid4())),
-            user_id=user_id,
-            total=data['total'],
-            status=data['status']
-        )
-        
-        db.session.add(new_order)
-        db.session.flush()  # Flush to get order_id
-        
-        # Add order items
-        for item in data['items']:
-            order_item = OrderItem(
-                order_id=new_order.order_id,
-                product_id=int(item['product_id']),
-                quantity=item['quantity'],
-                price=item['price']
-            )
-            db.session.add(order_item)
-        
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Order created successfully',
-            'orderId': new_order.order_id
-        })
-    
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error creating order: {str(e)}")
-        return jsonify({'success': False, 'message': f'Error creating order: {str(e)}'})
-
-@app.route('/api/orders', methods=['GET'])
-def get_orders():
-    """Get orders for the authenticated user"""
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'message': 'User not authenticated'})
-    
-    try:
-        user_id = session['user_id']
-        orders = Order.query.filter_by(user_id=user_id).order_by(Order.created_at.desc()).all()
-        order_list = []
-        
-        for order in orders:
-            # Get order items
-            items = OrderItem.query.filter_by(order_id=order.order_id).all()
-            item_list = []
-            
-            for item in items:
-                product = Product.query.get(item.product_id)
-                seller = None
+        data = request

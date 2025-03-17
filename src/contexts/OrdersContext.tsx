@@ -1,6 +1,7 @@
 
-import { createContext, useState, useContext, ReactNode } from "react";
+import { createContext, useState, useContext, ReactNode, useEffect } from "react";
 import { CartItem } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface OrderItem {
   id: string;
@@ -24,10 +25,10 @@ interface OrdersContextType {
   orders: Order[];
   setOrders: React.Dispatch<React.SetStateAction<Order[]>>;
   addOrder: (order: Order) => void;
-  // Add missing properties
   showOrders: boolean;
   setShowOrders: (show: boolean) => void;
   updateOrderStatus: (orderId: string, status: Order["status"]) => void;
+  fetchOrders: () => Promise<void>;
 }
 
 const OrdersContext = createContext<OrdersContextType | undefined>(undefined);
@@ -35,9 +36,93 @@ const OrdersContext = createContext<OrdersContextType | undefined>(undefined);
 export const OrdersProvider = ({ children }: { children: ReactNode }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [showOrders, setShowOrders] = useState(false);
+  const { isAuthenticated, userId } = useAuth();
 
-  const addOrder = (order: Order) => {
+  // Load orders from API when authenticated
+  useEffect(() => {
+    if (isAuthenticated && userId) {
+      fetchOrders();
+    }
+  }, [isAuthenticated, userId]);
+
+  const fetchOrders = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const response = await fetch('http://localhost:5000/api/orders', {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.orders) {
+          setOrders(data.orders.map((order: any) => ({
+            id: order.order_id,
+            date: order.created_at,
+            total: order.total,
+            status: order.status,
+            items: order.items.map((item: any) => ({
+              id: String(item.product_id),
+              name: item.name,
+              price: item.price,
+              quantity: item.quantity,
+              image: item.image_url || '',
+              sellerId: String(item.seller_id)
+            })),
+            userId: order.user_id
+          })));
+        }
+      } else {
+        console.error("Failed to fetch orders");
+      }
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+    }
+  };
+
+  const addOrder = async (order: Order) => {
+    // Add to local state immediately for better UX
     setOrders((prevOrders) => [order, ...prevOrders]);
+    
+    // If authenticated, try to save to database
+    if (isAuthenticated) {
+      try {
+        // Format order data for backend
+        const orderData = {
+          order_id: order.id,
+          user_id: userId,
+          total: order.total,
+          status: order.status,
+          items: order.items.map(item => ({
+            product_id: item.id,
+            quantity: item.quantity,
+            price: item.price,
+            name: item.name,
+            image_url: item.image
+          }))
+        };
+        
+        const response = await fetch('http://localhost:5000/api/orders/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(orderData),
+          credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+          console.error("Failed to save order to database:", data.message);
+        } else {
+          console.log("Order saved successfully:", data.orderId);
+        }
+      } catch (error) {
+        console.error("Error saving order to database:", error);
+      }
+    }
   };
 
   const updateOrderStatus = (orderId: string, status: Order["status"]) => {
@@ -46,6 +131,27 @@ export const OrdersProvider = ({ children }: { children: ReactNode }) => {
         order.id === orderId ? { ...order, status } : order
       )
     );
+    
+    // Update in database if authenticated
+    if (isAuthenticated) {
+      fetch(`http://localhost:5000/api/orders/update-status/${orderId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+        credentials: 'include'
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (!data.success) {
+          console.error("Failed to update order status in database:", data.message);
+        }
+      })
+      .catch(error => {
+        console.error("Error updating order status in database:", error);
+      });
+    }
   };
 
   return (
@@ -56,7 +162,8 @@ export const OrdersProvider = ({ children }: { children: ReactNode }) => {
         addOrder, 
         showOrders, 
         setShowOrders, 
-        updateOrderStatus 
+        updateOrderStatus,
+        fetchOrders
       }}
     >
       {children}

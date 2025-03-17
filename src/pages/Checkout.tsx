@@ -19,8 +19,8 @@ const Checkout = () => {
   const [isServerConfigError, setIsServerConfigError] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { cart, clearCart, setShowCart } = useCart();
-  const { orders, setOrders } = useOrders();
+  const { cart, clearCart } = useCart();
+  const { addOrder } = useOrders();
   const { isAuthenticated, userId } = useAuth();
 
   // Calculate total from cart
@@ -30,39 +30,22 @@ const Checkout = () => {
     // Create a new order from cart items
     const newOrder: Order = {
       id: uuidv4(),
-      items: [...cart],
+      items: cart.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image,
+        sellerId: item.sellerId
+      })),
       status: "Pending",
       date: new Date().toISOString(),
       total: cartTotal,
       userId: userId || undefined
     };
 
-    // Save to database if user is authenticated
-    if (isAuthenticated) {
-      try {
-        const response = await fetch('http://localhost:5000/api/orders/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(newOrder),
-          credentials: 'include'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          newOrder.id = data.orderId || newOrder.id; // Use server-generated ID if available
-        } else {
-          console.error("Failed to save order to database:", data.message);
-        }
-      } catch (error) {
-        console.error("Error saving order to database:", error);
-      }
-    }
-
-    // Add to orders
-    setOrders([newOrder, ...orders]);
+    // Add to orders context (which will handle database saving)
+    await addOrder(newOrder);
     
     // Clear cart
     clearCart();

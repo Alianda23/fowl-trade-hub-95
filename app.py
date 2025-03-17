@@ -842,6 +842,67 @@ def get_cart():
         print(f"Error fetching cart: {str(e)}")
         return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
-# Add this at the very end of the file
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+# Order endpoints
+@app.route('/api/orders/create', methods=['POST'])
+def create_order():
+    """Create a new order"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'User not authenticated'})
+    
+    try:
+        data = request.json
+        user_id = session['user_id']
+        
+        # Create new order in database
+        new_order = Order(
+            order_id=data.get('order_id', str(uuid.uuid4())),
+            user_id=user_id,
+            total=data['total'],
+            status=data['status']
+        )
+        
+        db.session.add(new_order)
+        db.session.flush()  # Flush to get order_id
+        
+        # Add order items
+        for item in data['items']:
+            order_item = OrderItem(
+                order_id=new_order.order_id,
+                product_id=int(item['product_id']),
+                quantity=item['quantity'],
+                price=item['price']
+            )
+            db.session.add(order_item)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Order created successfully',
+            'orderId': new_order.order_id
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating order: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error creating order: {str(e)}'})
+
+@app.route('/api/orders', methods=['GET'])
+def get_orders():
+    """Get orders for the authenticated user"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'User not authenticated'})
+    
+    try:
+        user_id = session['user_id']
+        orders = Order.query.filter_by(user_id=user_id).order_by(Order.created_at.desc()).all()
+        order_list = []
+        
+        for order in orders:
+            # Get order items
+            items = OrderItem.query.filter_by(order_id=order.order_id).all()
+            item_list = []
+            
+            for item in items:
+                product = Product.query.get(item.product_id)
+                seller = None

@@ -46,12 +46,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.removeItem('userEmail');
       localStorage.removeItem('userId');
       
+      // Clear cart in localStorage to prevent cart persistence after logout
+      localStorage.removeItem('cart');
+      
       setIsAuthenticated(false);
       setUserEmail(null);
       setUserId(null);
-      
-      // We'll handle cart and orders clearing in the respective contexts
-      // This removes the circular dependency
       
     } catch (error) {
       console.error("Logout error:", error);

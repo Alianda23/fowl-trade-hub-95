@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Search, ShoppingCart, LogIn, Package2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
+import { useCart } from "@/contexts/CartContext";
+import { useOrders } from "@/contexts/OrdersContext";
 
 interface HeaderProps {
   searchQuery: string;
@@ -28,25 +30,20 @@ const Header = ({
   handleLogout,
 }: HeaderProps) => {
   const navigate = useNavigate();
+  const { clearCart } = useCart();
+  const { setOrders } = useOrders();
 
   const logout = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
+      // Call the handleLogout function from AuthContext
+      await handleLogout();
       
-      if (response.ok) {
-        // Clear local storage
-        localStorage.removeItem('isAuthenticated');
-        localStorage.removeItem('userEmail');
-        
-        // Call the parent component's logout handler
-        handleLogout();
-        
-        // Navigate to home page
-        navigate('/');
-      }
+      // Clear cart and orders from UI state
+      clearCart();
+      setOrders([]);
+      
+      // Navigate to home page
+      navigate('/');
     } catch (error) {
       console.error('Logout failed:', error);
     }

@@ -1,5 +1,5 @@
 
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 import Header from "@/components/Header";
 import CartSidebar from "@/components/CartSidebar";
 import OrdersSidebar from "@/components/OrdersSidebar";

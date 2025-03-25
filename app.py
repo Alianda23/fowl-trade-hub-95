@@ -901,12 +901,9 @@ def clear_cart():
         print(f"Error clearing cart: {str(e)}")
         return jsonify({'success': False, 'message': f'Error clearing cart: {str(e)}'})
 
-# Order endpoints
+# Updated order creation endpoint
 @app.route('/api/orders/create', methods=['POST'])
 def create_order():
-    """Create a new order"""
+    """Create a new order with correct order items"""
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'User not authenticated'})
-    
-    try:
-        data = request

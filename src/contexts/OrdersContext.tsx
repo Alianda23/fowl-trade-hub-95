@@ -118,6 +118,8 @@ export const OrdersProvider = ({ children }: { children: ReactNode }) => {
           console.error("Failed to save order to database:", data.message);
         } else {
           console.log("Order saved successfully:", data.orderId);
+          // Refresh orders from the server to ensure we have the latest data
+          await fetchOrders();
         }
       } catch (error) {
         console.error("Error saving order to database:", error);

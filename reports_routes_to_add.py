@@ -17,8 +17,10 @@ def api_download_report():
     return download_report()
 """
 
-# Also install the required dependencies for PDF generation:
-# pip install reportlab
+# The required Python dependencies are already included in requirements.txt
+# Install them in your Python backend environment with:
+# pip install -r requirements.txt
 
 print("Make sure to add the above routes to your app.py file")
-print("Also install reportlab: pip install reportlab")
+print("The reportlab dependency is included in requirements.txt for your Python backend")
+print("Install backend dependencies with: pip install -r requirements.txt")

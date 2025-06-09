@@ -42,3 +42,21 @@ def check_seller_auth():
             })
     
     return jsonify({'isAuthenticated': False})
+
+def check_auth():
+    """Check regular user authentication"""
+    if 'user_id' in session:
+        user_id = session['user_id']
+        
+        # Get user details from User table
+        user = User.query.filter_by(user_id=user_id).first()
+        
+        if user:
+            return jsonify({
+                'isAuthenticated': True,
+                'user_id': user.user_id,
+                'email': user.email,
+                'username': user.username
+            })
+    
+    return jsonify({'isAuthenticated': False})

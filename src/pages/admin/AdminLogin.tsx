@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,14 +28,13 @@ const AdminLogin = () => {
         const data = await response.json();
         console.log("Admin auth check response:", data);
         
-        if (data.isAuthenticated) {
+        if (response.ok && data.isAuthenticated) {
           console.log("Admin is authenticated, redirecting to dashboard");
           navigate('/admin/dashboard', { replace: true });
-        } else {
-          console.log("Admin is not authenticated");
         }
       } catch (error) {
         console.error("Admin auth check error:", error);
+        // Don't redirect on error, just stay on login page
       }
     };
     
@@ -68,9 +68,8 @@ const AdminLogin = () => {
 
     setIsLoading(true);
     try {
-      console.log("Attempting admin login with:", { email, password });
+      console.log("Attempting admin login with:", { email });
       
-      // Connect to Python backend
       const response = await fetch('http://localhost:5000/api/admin/login', {
         method: 'POST',
         headers: {
@@ -86,7 +85,7 @@ const AdminLogin = () => {
       const data = await response.json();
       console.log("Admin login response:", data);
       
-      if (data.success) {
+      if (response.ok && data.success) {
         toast({
           title: "Login successful",
           description: "Welcome to the admin dashboard!",
@@ -106,12 +105,8 @@ const AdminLogin = () => {
           localStorage.setItem('adminDepartment', data.department);
         }
         
-        // Modified: Fix the navigation path to use /admin/dashboard instead of /admin
         console.log("Redirecting to admin dashboard...");
-        setTimeout(() => {
-          // Using a timeout to ensure state updates are processed
-          navigate('/admin/dashboard', { replace: true });
-        }, 100);
+        navigate('/admin/dashboard', { replace: true });
       } else {
         toast({
           title: "Login failed",
@@ -183,7 +178,6 @@ const AdminLogin = () => {
                   placeholder="••••••••"
                   required
                   disabled={isLoading}
-                  showPasswordToggle={true}
                 />
               </div>
               {errors.password && (

@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,16 +26,15 @@ const SellerLogin = () => {
         });
         
         const data = await response.json();
-        console.log("Auth check response:", data);
+        console.log("Seller auth check response:", data);
         
-        if (data.isAuthenticated) {
+        if (response.ok && data.isAuthenticated) {
           console.log("User is authenticated, redirecting to seller dashboard");
           navigate('/seller/dashboard', { replace: true });
-        } else {
-          console.log("User is not authenticated");
         }
       } catch (error) {
-        console.error("Auth check error:", error);
+        console.error("Seller auth check error:", error);
+        // Don't redirect on error, just stay on login page
       }
     };
     
@@ -70,9 +70,8 @@ const SellerLogin = () => {
 
     setIsLoading(true);
     try {
-      console.log("Attempting login with:", { email, password });
+      console.log("Attempting login with:", { email });
       
-      // Connect to Python backend
       const response = await fetch('http://localhost:5000/api/seller/login', {
         method: 'POST',
         headers: {
@@ -88,7 +87,7 @@ const SellerLogin = () => {
       const data = await response.json();
       console.log("Login response:", data);
       
-      if (data.success) {
+      if (response.ok && data.success) {
         toast({
           title: "Login successful",
           description: "Welcome back to your seller dashboard!",
@@ -103,10 +102,7 @@ const SellerLogin = () => {
         }
         
         console.log("Redirecting to seller dashboard...");
-        setTimeout(() => {
-          // Using a timeout to ensure state updates are processed
-          navigate('/seller/dashboard', { replace: true });
-        }, 100);
+        navigate('/seller/dashboard', { replace: true });
       } else {
         toast({
           title: "Login failed",
@@ -173,7 +169,6 @@ const SellerLogin = () => {
                 aria-describedby="password-error"
                 className={errors.password ? "border-red-500" : ""}
                 disabled={isLoading}
-                showPasswordToggle={true}
               />
               {errors.password && (
                 <p className="mt-1 text-sm text-red-500" id="password-error">

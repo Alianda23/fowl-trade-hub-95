@@ -1,3 +1,119 @@
+from flask import Flask, request, jsonify, session
+from flask_cors import CORS
+from werkzeug.security import generate_password_hash, check_password_hash
+from models import db, User, SellerProfile, AdminProfile, Product, Message, CartItem, Order, OrderItem
+from app_auth import check_admin_auth, check_seller_auth, check_auth
+import os
+from werkzeug.utils import secure_filename
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/kukuhub'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize extensions
+db.init_app(app)
+CORS(app, supports_credentials=True)
+
+# Configure upload settings
+UPLOAD_FOLDER = 'static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Authentication routes
+@app.route('/api/admin/login', methods=['POST'])
+def admin_login():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+    
+    admin = AdminProfile.query.filter_by(email=email).first()
+    
+    if admin and check_password_hash(admin.password_hash, password):
+        session['admin_id'] = admin.admin_id
+        return jsonify({
+            'success': True,
+            'message': 'Login successful',
+            'admin_id': admin.admin_id,
+            'username': admin.username,
+            'role': admin.role,
+            'department': admin.department
+        })
+    
+    return jsonify({'success': False, 'message': 'Invalid credentials'})
+
+@app.route('/api/seller/login', methods=['POST'])
+def seller_login():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+    
+    seller = SellerProfile.query.filter_by(email=email).first()
+    
+    if seller and check_password_hash(seller.password_hash, password):
+        session['seller_id'] = seller.seller_id
+        return jsonify({
+            'success': True,
+            'message': 'Login successful',
+            'seller_id': seller.seller_id,
+            'username': seller.username,
+            'business_name': seller.business_name,
+            'approval_status': seller.approval_status
+        })
+    
+    return jsonify({'success': False, 'message': 'Invalid credentials'})
+
+@app.route('/api/login', methods=['POST'])
+def user_login():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+    
+    user = User.query.filter_by(email=email).first()
+    
+    if user and check_password_hash(user.password_hash, password):
+        session['user_id'] = user.user_id
+        return jsonify({
+            'success': True,
+            'message': 'Login successful',
+            'user_id': user.user_id,
+            'username': user.username,
+            'email': user.email
+        })
+    
+    return jsonify({'success': False, 'message': 'Invalid credentials'})
+
+# Auth check routes
+@app.route('/api/admin/check-auth', methods=['GET'])
+def admin_check_auth():
+    return check_admin_auth()
+
+@app.route('/api/seller/check-auth', methods=['GET'])
+def seller_check_auth():
+    return check_seller_auth()
+
+@app.route('/api/check-auth', methods=['GET'])
+def user_check_auth():
+    return check_auth()
+
+# Logout routes
+@app.route('/api/admin/logout', methods=['POST'])
+def admin_logout():
+    session.pop('admin_id', None)
+    return jsonify({'success': True, 'message': 'Logged out successfully'})
+
+@app.route('/api/seller/logout', methods=['POST'])
+def seller_logout():
+    session.pop('seller_id', None)
+    return jsonify({'success': True, 'message': 'Logged out successfully'})
+
+@app.route('/api/logout', methods=['POST'])
+def user_logout():
+    session.pop('user_id', None)
+    return jsonify({'success': True, 'message': 'Logged out successfully'})
 
 @app.route('/api/seller/messages/reply', methods=['POST'])
 def seller_reply_to_message():
@@ -271,3 +387,6 @@ def update_order_status(order_id):
         db.session.rollback()
         print(f"Error updating order status: {str(e)}")
         return jsonify({'success': False, 'message': f'Error updating order status: {str(e)}'})
+
+if __name__ == '__main__':
+    app.run(debug=True)

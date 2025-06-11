@@ -29,6 +29,190 @@ def check_seller_auth_route():
 def check_admin_auth_route():
     return check_admin_auth()
 
+# User authentication routes
+@app.route('/api/login', methods=['POST'])
+def login():
+    """Handle user login"""
+    try:
+        data = request.json
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not email or not password:
+            return jsonify({'success': False, 'message': 'Email and password are required'})
+        
+        # Find user by email
+        user = User.query.filter_by(email=email).first()
+        
+        if user and check_password_hash(user.password, password):
+            session['user_id'] = user.user_id
+            return jsonify({
+                'success': True,
+                'message': 'Login successful',
+                'user_id': user.user_id,
+                'username': user.username,
+                'email': user.email
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Invalid email or password'})
+    
+    except Exception as e:
+        print(f"Login error: {str(e)}")
+        return jsonify({'success': False, 'message': f'Login error: {str(e)}'})
+
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    """Handle user logout"""
+    session.clear()
+    return jsonify({'success': True, 'message': 'Logged out successfully'})
+
+# Seller authentication routes
+@app.route('/api/seller/login', methods=['POST'])
+def seller_login():
+    """Handle seller login"""
+    try:
+        data = request.json
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not email or not password:
+            return jsonify({'success': False, 'message': 'Email and password are required'})
+        
+        # Find seller by email
+        seller = SellerProfile.query.filter_by(email=email).first()
+        
+        if seller and check_password_hash(seller.password, password):
+            session['seller_id'] = seller.seller_id
+            return jsonify({
+                'success': True,
+                'message': 'Login successful',
+                'seller_id': seller.seller_id,
+                'username': seller.username,
+                'email': seller.email,
+                'business_name': seller.business_name
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Invalid email or password'})
+    
+    except Exception as e:
+        print(f"Seller login error: {str(e)}")
+        return jsonify({'success': False, 'message': f'Seller login error: {str(e)}'})
+
+@app.route('/api/seller/check-auth', methods=['GET'])
+def seller_check_auth():
+    """Check if seller is authenticated"""
+    return check_seller_auth()
+
+@app.route('/api/seller/register', methods=['POST'])
+def seller_register():
+    """Handle seller registration"""
+    try:
+        data = request.json
+        email = data.get('email')
+        password = data.get('password')
+        username = data.get('username')
+        business_name = data.get('businessName')
+        business_description = data.get('businessDescription')
+        phone_number = data.get('phoneNumber')
+        
+        if not all([email, password, username, business_name]):
+            return jsonify({'success': False, 'message': 'All required fields must be filled'})
+        
+        # Check if seller already exists
+        existing_seller = SellerProfile.query.filter_by(email=email).first()
+        if existing_seller:
+            return jsonify({'success': False, 'message': 'Seller with this email already exists'})
+        
+        # Create new seller
+        hashed_password = generate_password_hash(password)
+        new_seller = SellerProfile(
+            username=username,
+            email=email,
+            password=hashed_password,
+            business_name=business_name,
+            business_description=business_description,
+            phone_number=phone_number,
+            approval_status='pending'
+        )
+        
+        db.session.add(new_seller)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Seller registration successful',
+            'seller_id': new_seller.seller_id
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Seller registration error: {str(e)}")
+        return jsonify({'success': False, 'message': f'Registration error: {str(e)}'})
+
+# Admin authentication routes
+@app.route('/api/admin/login', methods=['POST'])
+def admin_login():
+    """Handle admin login"""
+    try:
+        data = request.json
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not email or not password:
+            return jsonify({'success': False, 'message': 'Email and password are required'})
+        
+        # Find admin by email
+        admin = AdminProfile.query.filter_by(email=email).first()
+        
+        if admin and check_password_hash(admin.password, password):
+            session['admin_id'] = admin.admin_id
+            return jsonify({
+                'success': True,
+                'message': 'Login successful',
+                'admin_id': admin.admin_id,
+                'username': admin.username,
+                'email': admin.email,
+                'role': admin.role,
+                'department': admin.department
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Invalid admin credentials'})
+    
+    except Exception as e:
+        print(f"Admin login error: {str(e)}")
+        return jsonify({'success': False, 'message': f'Admin login error: {str(e)}'})
+
+@app.route('/api/admin/check-auth', methods=['GET'])
+def admin_check_auth():
+    """Check if admin is authenticated"""
+    return check_admin_auth()
+
+# Product routes
+@app.route('/api/products', methods=['GET'])
+def get_products():
+    """Get all products"""
+    try:
+        products = Product.query.all()
+        products_list = []
+        
+        for product in products:
+            products_list.append({
+                'product_id': product.product_id,
+                'name': product.name,
+                'description': product.description,
+                'price': product.price,
+                'image_url': product.image_url,
+                'category': product.category,
+                'seller_id': product.seller_id,
+                'stock_quantity': product.stock_quantity
+            })
+        
+        return jsonify({'success': True, 'products': products_list})
+    
+    except Exception as e:
+        print(f"Error fetching products: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error fetching products: {str(e)}'})
+
 @app.route('/api/seller/messages/reply', methods=['POST'])
 def seller_reply_to_message():
     """Handle seller replies to messages"""

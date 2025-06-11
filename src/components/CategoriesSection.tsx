@@ -5,22 +5,22 @@ const categories = [
   {
     title: "Live Poultry",
     description: "Browse quality live poultry from verified sellers",
-    image: "https://images.unsplash.com/photo-1517022812141-23620dba5c23?auto=format&fit=crop&w=500&q=80"
+    image: "/placeholder.svg"
   },
   {
     title: "Poultry Products",
     description: "Fresh eggs, meat, and processed products",
-    image: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?auto=format&fit=crop&w=500&q=80"
+    image: "/placeholder.svg"
   },
   {
     title: "Feeds & Supplements",
     description: "High-quality feeds and nutritional supplements",
-    image: "https://images.unsplash.com/photo-1466721591366-2d5fba72006d?auto=format&fit=crop&w=500&q=80"
+    image: "/placeholder.svg"
   },
   {
     title: "Equipment & Supplies",
     description: "Essential farming equipment and supplies",
-    image: "https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?auto=format&fit=crop&w=500&q=80"
+    image: "/placeholder.svg"
   }
 ];
 

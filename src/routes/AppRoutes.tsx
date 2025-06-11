@@ -22,7 +22,6 @@ import Products from "@/pages/admin/Products";
 import Orders from "@/pages/admin/Orders";
 import Users from "@/pages/admin/Users";
 import AdminProfile from "@/pages/admin/AdminProfile";
-import Reports from "@/pages/admin/Reports";
 
 // Import layout
 import Layout from "@/components/Layout";
@@ -109,7 +108,6 @@ const AppRoutes = () => {
       <Route path="/admin/orders" element={<Orders />} />
       <Route path="/admin/users" element={<Users />} />
       <Route path="/admin/profile" element={<AdminProfile />} />
-      <Route path="/admin/reports" element={<Reports />} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>

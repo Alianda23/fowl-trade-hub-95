@@ -55,7 +55,7 @@ const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
         <CardFooter className="flex gap-2 p-6 pt-0">
           <Button 
             className="flex-1 bg-sage-600 hover:bg-sage-700"
-            onClick={() => navigate(`/product/${product.id}`)}
+            onClick={() => navigate(`/products/${product.id}`)}
           >
             View Details
           </Button>

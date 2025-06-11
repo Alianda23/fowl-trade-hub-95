@@ -2,7 +2,6 @@
 from flask import Flask
 from models import db, User, SellerProfile, AdminProfile, Product, Message, CartItem, Order, OrderItem
 import os
-from sqlalchemy import text
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/kukuhub'
@@ -14,9 +13,7 @@ def setup_database():
     with app.app_context():
         try:
             # Check if database exists, if not create it
-            with db.engine.connect() as connection:
-                connection.execute(text("CREATE DATABASE IF NOT EXISTS kukuhub"))
-                connection.commit()
+            db.engine.execute("CREATE DATABASE IF NOT EXISTS kukuhub")
             
             # Create all tables
             db.create_all()

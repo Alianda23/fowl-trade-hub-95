@@ -56,21 +56,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem("cart", JSON.stringify(cart));
     
     // If authenticated, save to database
-    if (isAuthenticated && userId) {
+    if (isAuthenticated && cart.length > 0) {
       saveCartToDatabase();
     }
-  }, [cart, isAuthenticated, userId]);
+  }, [cart, isAuthenticated]);
 
   const fetchCartFromDatabase = async () => {
-    if (!isAuthenticated || !userId) return;
+    if (!isAuthenticated) return;
     
     try {
       const response = await fetch('http://localhost:5000/api/cart', {
         method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        }
+        credentials: 'include'
       });
       
       if (response.ok) {
@@ -87,7 +84,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const saveCartToDatabase = async () => {
-    if (!isAuthenticated || !userId) return;
+    if (!isAuthenticated) return;
     
     try {
       const response = await fetch('http://localhost:5000/api/cart/update', {
@@ -95,15 +92,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          items: cart.map(item => ({
-            product_id: item.id,
-            quantity: item.quantity,
-            price: item.price,
-            name: item.name,
-            image_url: item.image
-          }))
-        }),
+        body: JSON.stringify({ items: cart }),
         credentials: 'include'
       });
       
@@ -166,7 +155,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem("cart");
     
     // If authenticated, clear cart in database
-    if (isAuthenticated && userId) {
+    if (isAuthenticated) {
       try {
         fetch('http://localhost:5000/api/cart/clear', {
           method: 'DELETE',

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Product } from "@/data/products";
 import { useToast } from "@/hooks/use-toast";
@@ -53,18 +52,18 @@ const Index = ({ searchQuery, onAddToCart }: IndexProps) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background w-full">
+    <div className="min-h-screen flex flex-col bg-background">
       <HeroSection onBrowseProducts={handleScrollToProducts} />
       
       <CategoriesSection />
 
-      <div id="products-section" className="w-full">
+      <div id="products-section">
         <ProductsSection searchQuery={searchQuery} onAddToCart={addToCart} />
       </div>
 
       {/* Features Section */}
-      <section className="bg-sage-50 py-16 w-full">
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 xl:px-16">
+      <section className="bg-sage-50 py-16">
+        <div className="container">
           <h2 className="mb-2 text-center text-sm font-medium uppercase tracking-wider text-sage-600">
             Why Choose Us
           </h2>
@@ -98,8 +97,8 @@ const Index = ({ searchQuery, onAddToCart }: IndexProps) => {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-sage-900 py-16 text-white w-full">
-        <div className="container mx-auto px-4 md:px-8 text-center">
+      <section className="bg-sage-900 py-16 text-white">
+        <div className="container text-center">
           <h2 className="mb-6 text-3xl font-bold tracking-tight">
             Ready to Get Started?
           </h2>
@@ -119,8 +118,8 @@ const Index = ({ searchQuery, onAddToCart }: IndexProps) => {
       </section>
 
       {/* Contact Section */}
-      <section className="bg-white py-8 w-full">
-        <div className="container mx-auto px-4 text-center">
+      <section className="bg-white py-8">
+        <div className="container text-center">
           <h2 className="mb-4 text-2xl font-bold">Contact Us</h2>
           <p className="text-gray-600">Email: kukuhub@gmail.com</p>
           <p className="text-gray-600">Contact: 0712345678</p>

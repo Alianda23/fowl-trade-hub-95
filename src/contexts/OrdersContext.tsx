@@ -24,7 +24,7 @@ export interface Order {
 interface OrdersContextType {
   orders: Order[];
   setOrders: React.Dispatch<React.SetStateAction<Order[]>>;
-  addOrder: (order: Order) => Promise<void>;
+  addOrder: (order: Order) => void;
   showOrders: boolean;
   setShowOrders: (show: boolean) => void;
   updateOrderStatus: (orderId: string, status: Order["status"]) => void;
@@ -49,18 +49,13 @@ export const OrdersProvider = ({ children }: { children: ReactNode }) => {
     if (!isAuthenticated) return;
     
     try {
-      console.log("Fetching orders for user:", userId);
       const response = await fetch('http://localhost:5000/api/orders', {
         method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        credentials: 'include'
       });
       
       if (response.ok) {
         const data = await response.json();
-        console.log("Orders API response:", data);
         if (data.success && data.orders) {
           setOrders(data.orders.map((order: any) => ({
             id: order.order_id,
@@ -79,7 +74,7 @@ export const OrdersProvider = ({ children }: { children: ReactNode }) => {
           })));
         }
       } else {
-        console.error("Failed to fetch orders:", await response.text());
+        console.error("Failed to fetch orders");
       }
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -91,8 +86,7 @@ export const OrdersProvider = ({ children }: { children: ReactNode }) => {
     setOrders((prevOrders) => [order, ...prevOrders]);
     
     // If authenticated, try to save to database
-    if (isAuthenticated && userId) {
-      console.log("Saving order to database:", order);
+    if (isAuthenticated) {
       try {
         // Format order data for backend
         const orderData = {
@@ -105,12 +99,9 @@ export const OrdersProvider = ({ children }: { children: ReactNode }) => {
             quantity: item.quantity,
             price: item.price,
             name: item.name,
-            image_url: item.image,
-            seller_id: item.sellerId
+            image_url: item.image
           }))
         };
-        
-        console.log("Sending order data:", orderData);
         
         const response = await fetch('http://localhost:5000/api/orders/create', {
           method: 'POST',
@@ -122,20 +113,15 @@ export const OrdersProvider = ({ children }: { children: ReactNode }) => {
         });
         
         const data = await response.json();
-        console.log("Order creation response:", data);
         
         if (!data.success) {
           console.error("Failed to save order to database:", data.message);
         } else {
           console.log("Order saved successfully:", data.orderId);
-          // Refresh orders from the server to ensure we have the latest data
-          await fetchOrders();
         }
       } catch (error) {
         console.error("Error saving order to database:", error);
       }
-    } else {
-      console.log("User not authenticated, not saving order to database");
     }
   };
 

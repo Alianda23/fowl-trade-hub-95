@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -29,10 +28,8 @@ const Checkout = () => {
 
   const createOrder = async () => {
     // Create a new order from cart items
-    const orderId = uuidv4();
-    
     const newOrder: Order = {
-      id: orderId,
+      id: uuidv4(),
       items: cart.map(item => ({
         id: item.id,
         name: item.name,

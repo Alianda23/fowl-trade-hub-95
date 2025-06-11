@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from models import db, User, SellerProfile, AdminProfile, Product, Message, CartItem, Order, OrderItem
@@ -9,12 +10,17 @@ from werkzeug.security import check_password_hash, generate_password_hash
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/kukuhub'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'your-secret-key-here'  # Change this to a secure secret key
+app.config['SECRET_KEY'] = 'your-secret-key-here-make-this-more-secure'  # Change this to a secure secret key
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
+
+# Session configuration
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # Initialize extensions
 db.init_app(app)
-CORS(app, supports_credentials=True)
+CORS(app, supports_credentials=True, origins=['http://localhost:5173'])
 
 # Authentication routes
 @app.route('/api/auth/check', methods=['GET'])
@@ -46,6 +52,8 @@ def login():
         
         if user and check_password_hash(user.password_hash, password):
             session['user_id'] = user.user_id
+            session.permanent = True
+            print(f"User login successful. Session: {dict(session)}")  # Debug logging
             return jsonify({
                 'success': True,
                 'message': 'Login successful',
@@ -83,6 +91,8 @@ def seller_login():
         
         if seller and check_password_hash(seller.password_hash, password):
             session['seller_id'] = seller.seller_id
+            session.permanent = True
+            print(f"Seller login successful. Session: {dict(session)}")  # Debug logging
             return jsonify({
                 'success': True,
                 'message': 'Login successful',
@@ -166,6 +176,8 @@ def admin_login():
         
         if admin and check_password_hash(admin.password_hash, password):
             session['admin_id'] = admin.admin_id
+            session.permanent = True
+            print(f"Admin login successful. Session: {dict(session)}")  # Debug logging
             return jsonify({
                 'success': True,
                 'message': 'Login successful',

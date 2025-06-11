@@ -1,3 +1,33 @@
+from flask import Flask, request, jsonify, session
+from flask_cors import CORS
+from models import db, User, SellerProfile, AdminProfile, Product, Message, CartItem, Order, OrderItem
+from app_auth import check_auth, check_seller_auth, check_admin_auth
+import os
+from werkzeug.security import check_password_hash, generate_password_hash
+
+# Initialize Flask app
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/kukuhub'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'your-secret-key-here'  # Change this to a secure secret key
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+
+# Initialize extensions
+db.init_app(app)
+CORS(app, supports_credentials=True)
+
+# Authentication routes
+@app.route('/api/auth/check', methods=['GET'])
+def check_auth_route():
+    return check_auth()
+
+@app.route('/api/auth/seller/check', methods=['GET'])
+def check_seller_auth_route():
+    return check_seller_auth()
+
+@app.route('/api/auth/admin/check', methods=['GET'])
+def check_admin_auth_route():
+    return check_admin_auth()
 
 @app.route('/api/seller/messages/reply', methods=['POST'])
 def seller_reply_to_message():
@@ -271,3 +301,8 @@ def update_order_status(order_id):
         db.session.rollback()
         print(f"Error updating order status: {str(e)}")
         return jsonify({'success': False, 'message': f'Error updating order status: {str(e)}'})
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True, host='0.0.0.0', port=5000)

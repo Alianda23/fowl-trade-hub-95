@@ -2,6 +2,24 @@
 from flask import jsonify, session
 from models import User, SellerProfile, AdminProfile
 
+def check_auth():
+    if 'user_id' in session:
+        user_id = session['user_id']
+        
+        # Get user details from User model
+        user = User.query.filter_by(user_id=user_id).first()
+        
+        if user:
+            return jsonify({
+                'isAuthenticated': True,
+                'user_id': user.user_id,
+                'username': user.username,
+                'email': user.email,
+                'phone_number': user.phone_number
+            })
+    
+    return jsonify({'isAuthenticated': False})
+
 def check_admin_auth():
     if 'admin_id' in session:
         admin_id = session['admin_id']

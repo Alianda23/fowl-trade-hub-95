@@ -57,7 +57,9 @@ const Layout = ({ children, searchQuery, setSearchQuery }: LayoutProps) => {
         handleLogout={handleLogout}
       />
       
-      {children}
+      <div className="w-full">
+        {children}
+      </div>
       
       <CartSidebar
         showCart={showCart}

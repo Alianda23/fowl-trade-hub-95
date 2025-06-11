@@ -14,7 +14,7 @@ function App() {
       <AuthProvider>
         <CartProvider>
           <OrdersProvider>
-            <div className="flex min-h-screen flex-col">
+            <div className="flex min-h-screen w-full flex-col">
               <AppRoutes />
               <Toaster />
             </div>

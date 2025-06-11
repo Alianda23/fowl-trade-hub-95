@@ -44,7 +44,7 @@ def login():
         # Find user by email
         user = User.query.filter_by(email=email).first()
         
-        if user and check_password_hash(user.password, password):
+        if user and check_password_hash(user.password_hash, password):
             session['user_id'] = user.user_id
             return jsonify({
                 'success': True,
@@ -81,7 +81,7 @@ def seller_login():
         # Find seller by email
         seller = SellerProfile.query.filter_by(email=email).first()
         
-        if seller and check_password_hash(seller.password, password):
+        if seller and check_password_hash(seller.password_hash, password):
             session['seller_id'] = seller.seller_id
             return jsonify({
                 'success': True,
@@ -128,7 +128,7 @@ def seller_register():
         new_seller = SellerProfile(
             username=username,
             email=email,
-            password=hashed_password,
+            password_hash=hashed_password,
             business_name=business_name,
             business_description=business_description,
             phone_number=phone_number,
@@ -164,7 +164,7 @@ def admin_login():
         # Find admin by email
         admin = AdminProfile.query.filter_by(email=email).first()
         
-        if admin and check_password_hash(admin.password, password):
+        if admin and check_password_hash(admin.password_hash, password):
             session['admin_id'] = admin.admin_id
             return jsonify({
                 'success': True,

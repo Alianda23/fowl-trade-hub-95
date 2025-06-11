@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -28,6 +27,8 @@ const Checkout = () => {
   const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 
   const createOrder = async () => {
+    console.log("Creating order from cart:", cart);
+    
     // Create a new order from cart items
     const orderId = uuidv4();
     
@@ -47,12 +48,15 @@ const Checkout = () => {
       userId: userId || undefined
     };
 
+    console.log("Adding new order:", newOrder);
+    
     // Add to orders context (which will handle database saving)
     await addOrder(newOrder);
     
-    // Clear cart
+    // Clear cart after successful order creation
     clearCart();
     
+    console.log("Order created and cart cleared");
     return newOrder;
   };
 
@@ -74,7 +78,7 @@ const Checkout = () => {
     setIsProcessing(true);
     
     try {
-      const amount = cartTotal; // Use actual cart total
+      const amount = cartTotal;
       
       toast({
         title: "Processing",
@@ -99,20 +103,17 @@ const Checkout = () => {
           description: "Please wait while we confirm your payment...",
         });
         
-        // In a production app, you would poll the server to check payment status
-        // For simplicity, we're simulating a successful payment after a delay
-        setTimeout(() => {
-          // Create the order
-          const newOrder = createOrder();
-          
-          toast({
-            title: "Payment Successful",
-            description: "Your order has been placed successfully!",
-          });
-          
-          // Redirect to homepage after successful payment
-          setTimeout(() => navigate('/'), 2000);
-        }, 5000);
+        // Create the order immediately after payment initiation
+        console.log("Creating order after payment initiation...");
+        await createOrder();
+        
+        toast({
+          title: "Order Created",
+          description: "Your order has been placed successfully!",
+        });
+        
+        // Redirect to homepage after successful order creation
+        setTimeout(() => navigate('/'), 2000);
       } else {
         // Check if it's a server configuration error
         if (result.message && (
@@ -121,16 +122,27 @@ const Checkout = () => {
             result.message.includes("CallBackURL")
         )) {
           setIsServerConfigError(true);
+          
+          // For development purposes, still create the order even if M-Pesa fails
+          console.log("M-Pesa failed but creating order for development...");
+          await createOrder();
+          
+          toast({
+            title: "Order Created",
+            description: "Your order has been placed (M-Pesa configuration issue)",
+          });
+          
+          setTimeout(() => navigate('/'), 2000);
+        } else {
+          // If payment fails, show error but keep dialog open so user can try again
+          setPaymentError(result.message || "Failed to initiate payment. Please try again.");
+          
+          toast({
+            title: "Payment Failed",
+            description: result.message || "Failed to initiate payment. Please try again.",
+            variant: "destructive",
+          });
         }
-        
-        // If payment fails, show error but keep dialog open so user can try again
-        setPaymentError(result.message || "Failed to initiate payment. Please try again.");
-        
-        toast({
-          title: "Payment Failed",
-          description: result.message || "Failed to initiate payment. Please try again.",
-          variant: "destructive",
-        });
       }
     } catch (error) {
       console.error("Payment error:", error);

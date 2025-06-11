@@ -122,7 +122,7 @@ const MessagesDialog = ({ open, onOpenChange, onMessagesLoaded }: MessagesDialog
     setReplyContent("");
   };
 
-  const handleSendReply = async (messageId: string) => {
+  const handleSendReply = async (originalMessageId: string, senderEmail: string, productName: string) => {
     if (!replyContent.trim()) {
       toast({
         title: "Error",
@@ -141,8 +141,10 @@ const MessagesDialog = ({ open, onOpenChange, onMessagesLoaded }: MessagesDialog
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messageId,
-          replyContent: replyContent.trim()
+          originalMessageId,
+          replyContent: replyContent.trim(),
+          recipientEmail: senderEmail,
+          productName
         }),
         credentials: 'include'
       });
@@ -155,8 +157,8 @@ const MessagesDialog = ({ open, onOpenChange, onMessagesLoaded }: MessagesDialog
           description: "Your reply has been sent successfully",
         });
         
-        // Mark message as read
-        handleMarkAsRead(messageId);
+        // Mark original message as read
+        handleMarkAsRead(originalMessageId);
         
         // Reset reply state
         setReplyingTo(null);
@@ -249,7 +251,7 @@ const MessagesDialog = ({ open, onOpenChange, onMessagesLoaded }: MessagesDialog
                       <Button 
                         size="sm"
                         className="bg-sage-600 hover:bg-sage-700"
-                        onClick={() => handleSendReply(message.id)}
+                        onClick={() => handleSendReply(message.id, message.senderEmail, message.productName)}
                         disabled={isSendingReply}
                       >
                         {isSendingReply ? "Sending..." : "Send Reply"}

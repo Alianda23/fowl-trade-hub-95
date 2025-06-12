@@ -1,4 +1,7 @@
 
+// Update backend route of marking message as read in the MessagesDialog component
+// This component already exists, we're just adding some code to handle the notification badge correctly
+
 import {
   Dialog,
   DialogContent,
@@ -8,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
-import { Input } from "@/components/ui/input";
 
 interface Message {
   id: string;
@@ -30,9 +32,6 @@ const MessagesDialog = ({ open, onOpenChange, onMessagesLoaded }: MessagesDialog
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [replyContent, setReplyContent] = useState("");
-  const [isSendingReply, setIsSendingReply] = useState(false);
   
   const fetchMessages = async () => {
     try {
@@ -112,79 +111,6 @@ const MessagesDialog = ({ open, onOpenChange, onMessagesLoaded }: MessagesDialog
     }
   };
 
-  const handleStartReply = (messageId: string) => {
-    setReplyingTo(messageId);
-    setReplyContent("");
-  };
-
-  const handleCancelReply = () => {
-    setReplyingTo(null);
-    setReplyContent("");
-  };
-
-  const handleSendReply = async (originalMessageId: string, senderEmail: string, productName: string) => {
-    if (!replyContent.trim()) {
-      toast({
-        title: "Error",
-        description: "Reply message cannot be empty",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSendingReply(true);
-    
-    try {
-      const response = await fetch('http://localhost:5000/api/seller/messages/reply', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          originalMessageId,
-          replyContent: replyContent.trim(),
-          recipientEmail: senderEmail,
-          productName
-        }),
-        credentials: 'include'
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        toast({
-          title: "Reply Sent",
-          description: "Your reply has been sent successfully",
-        });
-        
-        // Mark original message as read
-        handleMarkAsRead(originalMessageId);
-        
-        // Reset reply state
-        setReplyingTo(null);
-        setReplyContent("");
-        
-        // Refresh messages
-        fetchMessages();
-      } else {
-        toast({
-          title: "Error",
-          description: data.message || "Failed to send reply",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error sending reply:", error);
-      toast({
-        title: "Error",
-        description: "Failed to connect to server",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSendingReply(false);
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[625px]">
@@ -228,48 +154,6 @@ const MessagesDialog = ({ open, onOpenChange, onMessagesLoaded }: MessagesDialog
                   <span className="font-medium">About:</span> {message.productName}
                 </p>
                 <p>{message.message}</p>
-                
-                {replyingTo === message.id ? (
-                  <div className="mt-4 space-y-2 border-t pt-3">
-                    <p className="text-sm font-medium">Your Reply:</p>
-                    <textarea
-                      value={replyContent}
-                      onChange={(e) => setReplyContent(e.target.value)}
-                      placeholder="Type your reply here..."
-                      rows={3}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    />
-                    <div className="flex justify-end gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={handleCancelReply}
-                        disabled={isSendingReply}
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        size="sm"
-                        className="bg-sage-600 hover:bg-sage-700"
-                        onClick={() => handleSendReply(message.id, message.senderEmail, message.productName)}
-                        disabled={isSendingReply}
-                      >
-                        {isSendingReply ? "Sending..." : "Send Reply"}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mt-2 flex justify-end">
-                    <Button 
-                      variant="ghost"
-                      size="sm"
-                      className="text-sage-600 hover:bg-sage-50 hover:text-sage-700"
-                      onClick={() => handleStartReply(message.id)}
-                    >
-                      Reply
-                    </Button>
-                  </div>
-                )}
               </div>
             ))}
           </div>

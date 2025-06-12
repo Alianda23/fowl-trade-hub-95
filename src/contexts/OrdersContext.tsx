@@ -1,3 +1,4 @@
+
 import { createContext, useState, useContext, ReactNode, useEffect } from "react";
 import { CartItem } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,7 +24,7 @@ export interface Order {
 interface OrdersContextType {
   orders: Order[];
   setOrders: React.Dispatch<React.SetStateAction<Order[]>>;
-  addOrder: (order: Order) => Promise<void>;
+  addOrder: (order: Order) => void;
   showOrders: boolean;
   setShowOrders: (show: boolean) => void;
   updateOrderStatus: (orderId: string, status: Order["status"]) => void;
@@ -37,48 +38,26 @@ export const OrdersProvider = ({ children }: { children: ReactNode }) => {
   const [showOrders, setShowOrders] = useState(false);
   const { isAuthenticated, userId } = useAuth();
 
-  // Load orders from localStorage on initial load, then fetch from API if authenticated
+  // Load orders from API when authenticated
   useEffect(() => {
-    // First load from localStorage for immediate display
-    const savedOrders = localStorage.getItem('orders');
-    if (savedOrders) {
-      try {
-        const parsedOrders = JSON.parse(savedOrders);
-        setOrders(parsedOrders);
-      } catch (error) {
-        console.error("Error parsing saved orders:", error);
-      }
-    }
-
-    // Then fetch from API if authenticated
     if (isAuthenticated && userId) {
       fetchOrders();
     }
   }, [isAuthenticated, userId]);
 
-  // Save orders to localStorage whenever orders change
-  useEffect(() => {
-    localStorage.setItem('orders', JSON.stringify(orders));
-  }, [orders]);
-
   const fetchOrders = async () => {
     if (!isAuthenticated) return;
     
     try {
-      console.log("Fetching orders for user:", userId);
       const response = await fetch('http://localhost:5000/api/orders', {
         method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        credentials: 'include'
       });
       
       if (response.ok) {
         const data = await response.json();
-        console.log("Orders API response:", data);
         if (data.success && data.orders) {
-          const fetchedOrders = data.orders.map((order: any) => ({
+          setOrders(data.orders.map((order: any) => ({
             id: order.order_id,
             date: order.created_at,
             total: order.total,
@@ -92,28 +71,22 @@ export const OrdersProvider = ({ children }: { children: ReactNode }) => {
               sellerId: String(item.seller_id)
             })),
             userId: order.user_id
-          }));
-          setOrders(fetchedOrders);
+          })));
         }
       } else {
-        console.error("Failed to fetch orders:", await response.text());
-        // If API fails, keep using localStorage data
+        console.error("Failed to fetch orders");
       }
     } catch (error) {
       console.error("Error fetching orders:", error);
-      // If API fails, keep using localStorage data
     }
   };
 
   const addOrder = async (order: Order) => {
-    console.log("Adding order:", order);
-    
     // Add to local state immediately for better UX
     setOrders((prevOrders) => [order, ...prevOrders]);
     
-    // Try to save to database if authenticated
-    if (isAuthenticated && userId) {
-      console.log("Attempting to save order to database:", order);
+    // If authenticated, try to save to database
+    if (isAuthenticated) {
       try {
         // Format order data for backend
         const orderData = {
@@ -126,12 +99,9 @@ export const OrdersProvider = ({ children }: { children: ReactNode }) => {
             quantity: item.quantity,
             price: item.price,
             name: item.name,
-            image_url: item.image,
-            seller_id: item.sellerId || null
+            image_url: item.image
           }))
         };
-        
-        console.log("Sending order data to API:", orderData);
         
         const response = await fetch('http://localhost:5000/api/orders/create', {
           method: 'POST',
@@ -142,34 +112,20 @@ export const OrdersProvider = ({ children }: { children: ReactNode }) => {
           credentials: 'include'
         });
         
-        if (response.ok) {
-          const data = await response.json();
-          console.log("Order creation response:", data);
-          
-          if (data.success) {
-            console.log("Order saved successfully to database:", data.orderId);
-            // Refresh orders from the server to ensure we have the latest data
-            await fetchOrders();
-          } else {
-            console.error("Failed to save order to database:", data.message || "Unknown error");
-          }
+        const data = await response.json();
+        
+        if (!data.success) {
+          console.error("Failed to save order to database:", data.message);
         } else {
-          const errorText = await response.text();
-          console.error("HTTP error saving order:", response.status, errorText);
+          console.log("Order saved successfully:", data.orderId);
         }
       } catch (error) {
-        console.error("Network error saving order to database:", error);
-        // Order is still saved locally, so user sees it
+        console.error("Error saving order to database:", error);
       }
-    } else {
-      console.log("User not authenticated, order saved locally only");
     }
   };
 
-  const updateOrderStatus = async (orderId: string, status: Order["status"]) => {
-    console.log("Updating order status:", orderId, status);
-    
-    // Update local state immediately
+  const updateOrderStatus = (orderId: string, status: Order["status"]) => {
     setOrders((prevOrders) => 
       prevOrders.map((order) => 
         order.id === orderId ? { ...order, status } : order
@@ -178,29 +134,23 @@ export const OrdersProvider = ({ children }: { children: ReactNode }) => {
     
     // Update in database if authenticated
     if (isAuthenticated) {
-      try {
-        const response = await fetch(`http://localhost:5000/api/orders/update-status/${orderId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ status }),
-          credentials: 'include'
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            console.log("Order status updated successfully in database");
-          } else {
-            console.error("Failed to update order status in database:", data.message);
-          }
-        } else {
-          console.error("HTTP error updating order status:", response.status);
+      fetch(`http://localhost:5000/api/orders/update-status/${orderId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+        credentials: 'include'
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (!data.success) {
+          console.error("Failed to update order status in database:", data.message);
         }
-      } catch (error) {
-        console.error("Network error updating order status:", error);
-      }
+      })
+      .catch(error => {
+        console.error("Error updating order status in database:", error);
+      });
     }
   };
 

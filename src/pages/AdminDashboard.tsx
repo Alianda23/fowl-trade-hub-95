@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import { Package2, Users, ShoppingCart, User, FileText } from "lucide-react";
+import { Package2, Users, ShoppingCart, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DashboardStat {
@@ -154,12 +154,6 @@ const AdminDashboard = () => {
       icon: <Package2 className="h-6 w-6" />,
       route: "/admin/orders",
     },
-    {
-      label: "Reports",
-      value: 5,
-      icon: <FileText className="h-6 w-6" />,
-      route: "/admin/reports",
-    },
   ];
 
   if (isLoading) {
@@ -183,7 +177,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-3">
         {stats.map((stat) => (
           <Button
             key={stat.label}

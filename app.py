@@ -1,4 +1,30 @@
 
+from flask import Flask, request, jsonify, session
+from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
+import os
+from werkzeug.security import generate_password_hash, check_password_hash
+from models import db, User, Product, SellerProfile, AdminProfile, Message, CartItem, Order, OrderItem
+from app_auth import check_auth, check_seller_auth, check_admin_auth
+
+# Create Flask app
+app = Flask(__name__)
+
+# Configure Flask app
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'mysql+pymysql://root:@localhost/kukuhub')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.permanent_session_lifetime = False
+
+# Initialize extensions
+db.init_app(app)
+CORS(app, supports_credentials=True, origins=["https://2bd66808-6b81-4c9b-9b94-93ebefb9b96b.lovableproject.com"])
+
+# Basic route for testing
+@app.route('/')
+def index():
+    return jsonify({'message': 'KukuHub API is running!'})
+
 @app.route('/api/seller/messages/reply', methods=['POST'])
 def seller_reply_to_message():
     """Handle seller replies to messages"""
@@ -271,3 +297,8 @@ def update_order_status(order_id):
         db.session.rollback()
         print(f"Error updating order status: {str(e)}")
         return jsonify({'success': False, 'message': f'Error updating order status: {str(e)}'})
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True, host='0.0.0.0', port=5000)

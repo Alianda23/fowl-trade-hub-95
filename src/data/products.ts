@@ -6,6 +6,8 @@ export interface Product {
   price: number;
   description: string;
   image: string;
+  video?: string;
+  mediaType?: 'image' | 'video' | 'both';
   stock: number;
   sellerId?: string;
   sellerName?: string;

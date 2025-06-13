@@ -143,6 +143,7 @@ def seller_login():
     
     # Set session data for the seller
     session['seller_id'] = seller.seller_id
+    session.permanent = True  # Make session permanent
     
     return jsonify({
         'success': True, 
@@ -156,48 +157,21 @@ def seller_login():
 
 @app.route('/api/seller/check-auth', methods=['GET'])
 def seller_auth_check():
-    return check_seller_auth()
-
-@app.route('/api/seller/update-profile', methods=['PUT'])
-def update_seller_profile():
-    """Update seller profile information"""
-    # First check if seller is authenticated
-    auth_check = check_seller_auth()
-    auth_data = auth_check.get_json()
-    
-    if not auth_data.get('isAuthenticated'):
-        return jsonify({'success': False, 'message': 'Seller not authenticated'})
-    
-    try:
-        seller_id = auth_data.get('seller_id')
+    if 'seller_id' in session:
+        seller_id = session['seller_id']
         seller = SellerProfile.query.get(seller_id)
         
-        if not seller:
-            return jsonify({'success': False, 'message': 'Seller not found'})
-        
-        data = request.json
-        
-        # Update fields
-        if 'username' in data:
-            seller.username = data['username']
-        if 'business_name' in data:
-            seller.business_name = data['business_name']
-        if 'business_description' in data:
-            seller.business_description = data['business_description']
-        if 'phone_number' in data:
-            seller.phone_number = data['phone_number']
-        
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Profile updated successfully'
-        })
+        if seller:
+            return jsonify({
+                'isAuthenticated': True,
+                'seller_id': seller.seller_id,
+                'username': seller.username,
+                'email': seller.email,
+                'business_name': seller.business_name,
+                'approval_status': seller.approval_status
+            })
     
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error updating seller profile: {str(e)}")
-        return jsonify({'success': False, 'message': f'Update failed: {str(e)}'})
+    return jsonify({'isAuthenticated': False})
 
 # Admin routes
 @app.route('/api/admin/login', methods=['POST'])
@@ -642,15 +616,11 @@ def send_message():
 @app.route('/api/seller/messages', methods=['GET'])
 def get_seller_messages():
     """Get messages for the authenticated seller"""
-    # Check if seller is authenticated
-    auth_check = check_seller_auth()
-    auth_data = auth_check.get_json()
-    
-    if not auth_data.get('isAuthenticated'):
+    if 'seller_id' not in session:
         return jsonify({'success': False, 'message': 'Seller not authenticated'})
     
     try:
-        seller_id = auth_data.get('seller_id')
+        seller_id = session['seller_id']
         messages = Message.query.filter_by(seller_id=seller_id).order_by(Message.created_at.desc()).all()
         message_list = []
         
@@ -659,10 +629,11 @@ def get_seller_messages():
                 'id': str(msg.message_id),
                 'senderName': msg.senderName,
                 'senderEmail': msg.senderEmail,
-                'message': msg.content,
+                'content': msg.content,
                 'productName': msg.productName,
-                'isRead': msg.is_read,
-                'createdAt': msg.created_at.isoformat()
+                'createdAt': msg.created_at.isoformat(),
+                'reply': msg.reply,
+                'repliedAt': msg.replied_at.isoformat() if msg.replied_at else None
             })
         
         return jsonify({
@@ -674,112 +645,75 @@ def get_seller_messages():
         print(f"Error fetching messages: {str(e)}")
         return jsonify({'success': False, 'message': f'Error fetching messages: {str(e)}'})
 
-@app.route('/api/seller/messages/mark-read/<message_id>', methods=['PUT'])
-def mark_message_read(message_id):
-    """Mark a message as read"""
-    # Check if seller is authenticated
-    auth_check = check_seller_auth()
-    auth_data = auth_check.get_json()
-    
-    if not auth_data.get('isAuthenticated'):
+@app.route('/api/messages/<message_id>/reply', methods=['POST'])
+def reply_to_message(message_id):
+    """Reply to a customer message"""
+    if 'seller_id' not in session:
         return jsonify({'success': False, 'message': 'Seller not authenticated'})
     
     try:
-        seller_id = auth_data.get('seller_id')
-        message = Message.query.get(message_id)
+        data = request.json
+        seller_id = session['seller_id']
         
+        # Find the message
+        message = Message.query.get(message_id)
         if not message:
             return jsonify({'success': False, 'message': 'Message not found'})
         
         # Verify this message belongs to the seller
-        if message.seller_id != int(seller_id):
-            return jsonify({'success': False, 'message': 'This message does not belong to you'})
+        if message.seller_id != seller_id:
+            return jsonify({'success': False, 'message': 'Unauthorized'})
         
-        message.is_read = True
+        # Update the message with reply
+        message.reply = data['reply']
+        message.replied_at = datetime.utcnow()
         db.session.commit()
         
         return jsonify({
             'success': True,
-            'message': 'Message marked as read'
+            'message': 'Reply sent successfully'
         })
     
     except Exception as e:
         db.session.rollback()
-        print(f"Error marking message as read: {str(e)}")
-        return jsonify({'success': False, 'message': f'Error marking message as read: {str(e)}'})
+        print(f"Error sending reply: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error sending reply: {str(e)}'})
 
-@app.route('/api/seller/messages/count', methods=['GET'])
-def get_seller_message_count():
-    """Get count of unread messages for the authenticated seller"""
-    # Check if seller is authenticated
-    auth_check = check_seller_auth()
-    auth_data = auth_check.get_json()
-    
-    if not auth_data.get('isAuthenticated'):
-        return jsonify({'success': False, 'message': 'Seller not authenticated'})
+@app.route('/api/user/messages', methods=['GET'])
+def get_user_messages():
+    """Get messages for a user by email"""
+    email = request.args.get('email')
+    if not email:
+        return jsonify({'success': False, 'message': 'Email parameter required'})
     
     try:
-        seller_id = auth_data.get('seller_id')
-        unread_count = Message.query.filter_by(seller_id=seller_id, is_read=False).count()
+        # Find messages sent by this email
+        messages = Message.query.filter_by(senderEmail=email).order_by(Message.created_at.desc()).all()
+        message_list = []
         
-        return jsonify({
-            'success': True,
-            'count': unread_count
-        })
-    
-    except Exception as e:
-        print(f"Error fetching message count: {str(e)}")
-        return jsonify({'success': False, 'message': f'Error fetching message count: {str(e)}'})
-
-# Admin endpoints
-@app.route('/api/admin/users', methods=['GET'])
-def get_all_users():
-    """Get all users (admin only)"""
-    # First check if admin is authenticated
-    auth_check = check_admin_auth()
-    auth_data = auth_check.get_json()
-    
-    if not auth_data.get('isAuthenticated'):
-        return jsonify({'success': False, 'message': 'Admin not authenticated'})
-    
-    try:
-        # Get all buyers
-        buyers = User.query.all()
-        buyer_list = []
-        
-        for user in buyers:
-            buyer_list.append({
-                'user_id': user.user_id,
-                'username': user.username,
-                'email': user.email,
-                'phone_number': user.phone_number,
-                'created_at': user.created_at.isoformat()
-            })
-        
-        # Get all sellers
-        sellers = SellerProfile.query.all()
-        seller_list = []
-        
-        for seller in sellers:
-            seller_list.append({
-                'seller_id': seller.seller_id,
-                'username': seller.username,
-                'email': seller.email,
-                'business_name': seller.business_name,
-                'approval_status': seller.approval_status,
-                'phone_number': seller.phone_number,
-                'created_at': seller.created_at.isoformat()
+        for msg in messages:
+            # Get seller info
+            seller = SellerProfile.query.get(msg.seller_id)
+            seller_name = seller.business_name if seller else "Unknown Seller"
+            
+            message_list.append({
+                'id': str(msg.message_id),
+                'productName': msg.productName,
+                'sellerName': seller_name,
+                'content': msg.content,
+                'reply': msg.reply,
+                'createdAt': msg.created_at.isoformat(),
+                'repliedAt': msg.replied_at.isoformat() if msg.replied_at else None
             })
         
         return jsonify({
             'success': True,
-            'users': buyer_list,
-            'sellers': seller_list
+            'messages': message_list
         })
     
     except Exception as e:
-        print(f"Error fetching users: {str(e)}")
-        return jsonify({'success': False, 'message': f'Error fetching users: {str(e)}'})
+        print(f"Error fetching user messages: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error fetching user messages: {str(e)}'})
 
 # For testing
 @app.route('/api/test/users', methods=['GET'])

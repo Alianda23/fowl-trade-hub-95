@@ -25,26 +25,20 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [showCart, setShowCart] = useState(false);
   const { isAuthenticated, userId } = useAuth();
 
-  // Load cart from localStorage and/or database on initial render
+  // Load cart from localStorage on initial render
   useEffect(() => {
-    if (isAuthenticated) {
-      // If authenticated, fetch cart from database
-      fetchCartFromDatabase();
-    } else {
-      // If not authenticated, load from localStorage
-      const savedCart = localStorage.getItem("cart");
-      if (savedCart) {
-        try {
-          setCart(JSON.parse(savedCart));
-        } catch (error) {
-          console.error("Error parsing cart from localStorage:", error);
-          localStorage.removeItem("cart");
-        }
+    const savedCart = localStorage.getItem("cart");
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch (error) {
+        console.error("Error parsing cart from localStorage:", error);
+        localStorage.removeItem("cart");
       }
     }
-  }, [isAuthenticated, userId]);
+  }, []);
 
-  // Update cartTotal whenever cart changes and save to localStorage/database
+  // Update cartTotal whenever cart changes and save to localStorage
   useEffect(() => {
     const total = cart.reduce(
       (sum, item) => sum + item.price * item.quantity,
@@ -52,57 +46,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     );
     setCartTotal(Number(total.toFixed(2)));
     
-    // Save cart to localStorage for non-authenticated users
+    // Save cart to localStorage
     localStorage.setItem("cart", JSON.stringify(cart));
-    
-    // If authenticated, save to database
-    if (isAuthenticated && cart.length > 0) {
-      saveCartToDatabase();
-    }
-  }, [cart, isAuthenticated]);
-
-  const fetchCartFromDatabase = async () => {
-    if (!isAuthenticated) return;
-    
-    try {
-      const response = await fetch('http://localhost:5000/api/cart', {
-        method: 'GET',
-        credentials: 'include'
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.cart) {
-          setCart(data.cart);
-        }
-      } else {
-        console.error("Failed to fetch cart");
-      }
-    } catch (error) {
-      console.error("Error fetching cart:", error);
-    }
-  };
-
-  const saveCartToDatabase = async () => {
-    if (!isAuthenticated) return;
-    
-    try {
-      const response = await fetch('http://localhost:5000/api/cart/update', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ items: cart }),
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        console.error("Failed to save cart to database");
-      }
-    } catch (error) {
-      console.error("Error saving cart to database:", error);
-    }
-  };
+  }, [cart]);
 
   const addToCart = (product: Product) => {
     setCart((prevCart) => {
@@ -153,18 +99,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const clearCart = () => {
     setCart([]);
     localStorage.removeItem("cart");
-    
-    // If authenticated, clear cart in database
-    if (isAuthenticated) {
-      try {
-        fetch('http://localhost:5000/api/cart/clear', {
-          method: 'DELETE',
-          credentials: 'include'
-        });
-      } catch (error) {
-        console.error("Error clearing cart in database:", error);
-      }
-    }
   };
 
   return (

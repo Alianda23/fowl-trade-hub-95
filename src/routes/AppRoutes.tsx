@@ -1,4 +1,3 @@
-
 import { Routes, Route } from "react-router-dom";
 import { useState } from "react";
 import { useCart } from "@/contexts/CartContext";
@@ -22,6 +21,7 @@ import Products from "@/pages/admin/Products";
 import Orders from "@/pages/admin/Orders";
 import Users from "@/pages/admin/Users";
 import AdminProfile from "@/pages/admin/AdminProfile";
+import Reports from "@/pages/admin/Reports";
 
 // Import layout
 import Layout from "@/components/Layout";
@@ -110,14 +110,13 @@ const AppRoutes = () => {
       <Route path="/seller/orders" element={<SellerOrders />} />
       <Route path="/seller/profile" element={<SellerProfile />} />
 
-      <Route path="/admin/login" element={<AdminLogin />} />
-      
-      <Route path="/admin/dashboard" element={<AdminDashboard />} />
       <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin/profile" element={<AdminProfile />} />
+      <Route path="/admin/users" element={<Users />} />
       <Route path="/admin/products" element={<Products />} />
       <Route path="/admin/orders" element={<Orders />} />
-      <Route path="/admin/users" element={<Users />} />
-      <Route path="/admin/profile" element={<AdminProfile />} />
+      <Route path="/admin/reports" element={<Reports />} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>

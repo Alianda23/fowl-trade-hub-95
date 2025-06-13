@@ -7,6 +7,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { categories, productTypes } from "@/data/products";
 import { useState, useEffect } from "react";
@@ -235,175 +236,180 @@ const AddProductDialog = ({ open, onOpenChange, onProductAdded }: AddProductDial
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Add New Product</DialogTitle>
           <DialogDescription>
             Fill in the details below to add a new product to your inventory
           </DialogDescription>
         </DialogHeader>
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <label className="mb-2 block text-sm font-medium">Product Name</label>
-            <input 
-              type="text" 
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full rounded-md border p-2" 
-              required 
-            />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium">Description</label>
-            <textarea 
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              className="w-full rounded-md border p-2" 
-              rows={3} 
-              required 
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+        
+        <ScrollArea className="max-h-[70vh] pr-4">
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label className="mb-2 block text-sm font-medium">Category</label>
-              <select 
-                className="w-full rounded-md border p-2" 
-                required
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-              >
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium">Type</label>
-              <select 
-                className="w-full rounded-md border p-2" 
-                required
-                name="type"
-                value={formData.type}
-                onChange={handleChange}
-              >
-                {productTypes[selectedCategory as keyof typeof productTypes].map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-2 block text-sm font-medium">Price (KShs)</label>
+              <label className="mb-2 block text-sm font-medium">Product Name</label>
               <input 
-                type="number" 
-                name="price"
-                value={formData.price}
+                type="text" 
+                name="name"
+                value={formData.name}
                 onChange={handleChange}
                 className="w-full rounded-md border p-2" 
                 required 
               />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium">Stock</label>
-              <input 
-                type="number" 
-                name="stock"
-                value={formData.stock}
+              <label className="mb-2 block text-sm font-medium">Description</label>
+              <textarea 
+                name="description"
+                value={formData.description}
                 onChange={handleChange}
                 className="w-full rounded-md border p-2" 
+                rows={3} 
                 required 
               />
             </div>
-          </div>
-          
-          {/* Media Type Selection */}
-          <div>
-            <label className="mb-2 block text-sm font-medium">Media Type</label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => handleMediaTypeChange('image')}
-                className={`px-3 py-1 rounded-md text-sm ${
-                  mediaType === 'image' 
-                    ? 'bg-sage-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                Image Only
-              </button>
-              <button
-                type="button"
-                onClick={() => handleMediaTypeChange('video')}
-                className={`px-3 py-1 rounded-md text-sm ${
-                  mediaType === 'video' 
-                    ? 'bg-sage-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                Video Only
-              </button>
-              <button
-                type="button"
-                onClick={() => handleMediaTypeChange('both')}
-                className={`px-3 py-1 rounded-md text-sm ${
-                  mediaType === 'both' 
-                    ? 'bg-sage-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                Both
-              </button>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium">Category</label>
+                <select 
+                  className="w-full rounded-md border p-2" 
+                  required
+                  name="category"
+                  value={formData.category}
+                  onChange={handleChange}
+                >
+                  {categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Type</label>
+                <select 
+                  className="w-full rounded-md border p-2" 
+                  required
+                  name="type"
+                  value={formData.type}
+                  onChange={handleChange}
+                >
+                  {productTypes[selectedCategory as keyof typeof productTypes].map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium">Price (KShs)</label>
+                <input 
+                  type="number" 
+                  name="price"
+                  value={formData.price}
+                  onChange={handleChange}
+                  className="w-full rounded-md border p-2" 
+                  required 
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Stock</label>
+                <input 
+                  type="number" 
+                  name="stock"
+                  value={formData.stock}
+                  onChange={handleChange}
+                  className="w-full rounded-md border p-2" 
+                  required 
+                />
+              </div>
+            </div>
+            
+            {/* Media Type Selection */}
+            <div>
+              <label className="mb-2 block text-sm font-medium">Media Type</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleMediaTypeChange('image')}
+                  className={`px-3 py-1 rounded-md text-sm ${
+                    mediaType === 'image' 
+                      ? 'bg-sage-600 text-white' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Image Only
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleMediaTypeChange('video')}
+                  className={`px-3 py-1 rounded-md text-sm ${
+                    mediaType === 'video' 
+                      ? 'bg-sage-600 text-white' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Video Only
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleMediaTypeChange('both')}
+                  className={`px-3 py-1 rounded-md text-sm ${
+                    mediaType === 'both' 
+                      ? 'bg-sage-600 text-white' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Both
+                </button>
+              </div>
+            </div>
 
-          {/* Conditional Media Upload Fields */}
-          {(mediaType === 'image' || mediaType === 'both') && (
-            <div>
-              <label className="mb-2 block text-sm font-medium">Product Image</label>
-              <input 
-                type="file" 
-                name="image"
-                accept="image/*" 
-                className="w-full rounded-md border p-2" 
-                onChange={handleFileChange}
-                required={mediaType === 'image'}
-              />
+            {/* Conditional Media Upload Fields */}
+            {(mediaType === 'image' || mediaType === 'both') && (
+              <div>
+                <label className="mb-2 block text-sm font-medium">Product Image</label>
+                <input 
+                  type="file" 
+                  name="image"
+                  accept="image/*" 
+                  className="w-full rounded-md border p-2" 
+                  onChange={handleFileChange}
+                  required={mediaType === 'image'}
+                />
+              </div>
+            )}
+            
+            {(mediaType === 'video' || mediaType === 'both') && (
+              <div>
+                <label className="mb-2 block text-sm font-medium">Product Video</label>
+                <input 
+                  type="file" 
+                  name="video"
+                  accept="video/*" 
+                  className="w-full rounded-md border p-2" 
+                  onChange={handleFileChange}
+                  required={mediaType === 'video'}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Supported formats: MP4, WebM, AVI (max 50MB)
+                </p>
+              </div>
+            )}
+            
+            <div className="pt-4">
+              <Button 
+                type="submit" 
+                className="w-full bg-sage-600 hover:bg-sage-700"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Adding Product...' : 'Add Product'}
+              </Button>
             </div>
-          )}
-          
-          {(mediaType === 'video' || mediaType === 'both') && (
-            <div>
-              <label className="mb-2 block text-sm font-medium">Product Video</label>
-              <input 
-                type="file" 
-                name="video"
-                accept="video/*" 
-                className="w-full rounded-md border p-2" 
-                onChange={handleFileChange}
-                required={mediaType === 'video'}
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Supported formats: MP4, WebM, AVI (max 50MB)
-              </p>
-            </div>
-          )}
-          
-          <Button 
-            type="submit" 
-            className="w-full bg-sage-600 hover:bg-sage-700"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Adding Product...' : 'Add Product'}
-          </Button>
-        </form>
+          </form>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

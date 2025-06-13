@@ -1,5 +1,5 @@
 
-import { LayoutDashboard, Package2, ShoppingCart, User } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface SidebarItem {
@@ -13,10 +13,7 @@ interface SellerSidebarProps {
 }
 
 const defaultItems = [
-  { icon: <LayoutDashboard className="h-5 w-5" />, label: "Dashboard", path: "/seller" },
-  { icon: <Package2 className="h-5 w-5" />, label: "Products", path: "/seller" },
   { icon: <ShoppingCart className="h-5 w-5" />, label: "Orders", path: "/seller/orders" },
-  { icon: <User className="h-5 w-5" />, label: "Profile", path: "/seller" },
 ];
 
 const SellerSidebar = ({ items = defaultItems }: SellerSidebarProps) => {

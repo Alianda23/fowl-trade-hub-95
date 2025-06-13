@@ -1,10 +1,10 @@
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Search, ShoppingCart, LogIn, Package2 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
-import { useCart } from "@/contexts/CartContext";
-import { useOrders } from "@/contexts/OrdersContext";
+import { ShoppingCart, Search, User, Package, MessageSquare } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import BuyerMessagesPanel from "./BuyerMessagesPanel";
 
 interface HeaderProps {
   searchQuery: string;
@@ -30,93 +30,105 @@ const Header = ({
   handleLogout,
 }: HeaderProps) => {
   const navigate = useNavigate();
-  const { clearCart } = useCart();
-  const { setOrders } = useOrders();
-
-  const logout = async () => {
-    try {
-      // Call the handleLogout function from AuthContext
-      await handleLogout();
-      
-      // Clear cart and orders from UI state
-      clearCart();
-      setOrders([]);
-      
-      // Navigate to home page
-      navigate('/');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
+  const [showMessagesPanel, setShowMessagesPanel] = useState(false);
 
   return (
-    <div className="sticky top-0 z-40 w-full bg-white shadow">
-      <div className="container flex items-center justify-between py-4">
-        <div className="relative flex w-full max-w-md items-center gap-4">
-          <Link to="/">
-            <h1 className="text-xl font-bold text-sage-600">KukuHub</h1>
-          </Link>
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search products..."
-              className="w-full pl-10"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+    <>
+      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between">
+          <div className="flex items-center gap-6">
+            <h1 
+              className="text-2xl font-bold cursor-pointer text-sage-600" 
+              onClick={() => navigate("/")}
+            >
+              KukuHub
+            </h1>
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8"
+              />
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
+
+          <div className="flex items-center gap-4">
+            {isAuthenticated && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowMessagesPanel(true)}
+                className="relative"
+              >
+                <MessageSquare className="h-5 w-5" />
+                <span className="sr-only">Messages</span>
+              </Button>
+            )}
+            
             <Button
               variant="ghost"
-              className="relative"
-              onClick={() => setShowOrders(true)}
-              aria-label="View Orders"
-            >
-              <Package2 className="h-6 w-6" />
-              {ordersCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-sage-600 text-xs text-white">
-                  {ordersCount}
-                </span>
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              className="relative"
+              size="sm"
               onClick={() => setShowCart(true)}
-              aria-label="View Cart"
+              className="relative"
             >
-              <ShoppingCart className="h-6 w-6" />
+              <ShoppingCart className="h-5 w-5" />
               {cartItemsCount > 0 && (
                 <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-sage-600 text-xs text-white">
                   {cartItemsCount}
                 </span>
               )}
+              <span className="sr-only">Cart</span>
             </Button>
-          </div>
-          {isAuthenticated ? (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">{userEmail}</span>
-              <Button 
-                variant="ghost" 
-                onClick={logout}
+
+            {isAuthenticated && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowOrders(true)}
+                className="relative"
               >
-                Logout
+                <Package className="h-5 w-5" />
+                {ordersCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-sage-600 text-xs text-white">
+                    {ordersCount}
+                  </span>
+                )}
+                <span className="sr-only">Orders</span>
               </Button>
-            </div>
-          ) : (
-            <Link to="/login">
-              <Button variant="ghost" className="gap-2">
-                <LogIn className="h-5 w-5" />
-                Login
-              </Button>
-            </Link>
-          )}
+            )}
+
+            {isAuthenticated ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">{userEmail}</span>
+                <Button variant="ghost" onClick={handleLogout}>
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" onClick={() => navigate("/login")}>
+                  <User className="mr-2 h-4 w-4" />
+                  Login
+                </Button>
+                <Button onClick={() => navigate("/signup")} className="bg-sage-600 hover:bg-sage-700">
+                  Sign Up
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </div>
+      </header>
+
+      {isAuthenticated && userEmail && (
+        <BuyerMessagesPanel
+          isOpen={showMessagesPanel}
+          onClose={() => setShowMessagesPanel(false)}
+          userEmail={userEmail}
+        />
+      )}
+    </>
   );
 };
 

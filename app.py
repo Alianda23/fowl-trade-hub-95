@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from models import db, User, SellerProfile, AdminProfile, Product, Message, CartItem, Order, OrderItem
@@ -201,6 +202,137 @@ def admin_login():
 def admin_auth_check():
     return check_admin_auth()
 
+@app.route('/api/admin/dashboard-stats', methods=['GET'])
+def admin_dashboard_stats():
+    """Get dashboard statistics for admin"""
+    # First check if admin is authenticated
+    auth_check = check_admin_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Admin not authenticated'})
+    
+    try:
+        # Get counts from database
+        total_products = Product.query.count()
+        total_users = User.query.count() + SellerProfile.query.count()  # Both buyers and sellers
+        total_orders = Order.query.count()
+        
+        return jsonify({
+            'success': True,
+            'stats': {
+                'products': total_products,
+                'users': total_users,
+                'orders': total_orders
+            }
+        })
+    
+    except Exception as e:
+        print(f"Error fetching dashboard stats: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error fetching dashboard statistics: {str(e)}'})
+
+@app.route('/api/admin/users', methods=['GET'])
+def admin_get_users():
+    """Get all users and sellers for admin"""
+    # First check if admin is authenticated
+    auth_check = check_admin_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Admin not authenticated'})
+    
+    try:
+        # Get all buyers (users)
+        users = User.query.all()
+        user_list = []
+        
+        for user in users:
+            user_list.append({
+                'user_id': user.user_id,
+                'username': user.username,
+                'email': user.email,
+                'phone_number': user.phone_number,
+                'created_at': user.created_at.isoformat()
+            })
+        
+        # Get all sellers
+        sellers = SellerProfile.query.all()
+        seller_list = []
+        
+        for seller in sellers:
+            seller_list.append({
+                'seller_id': seller.seller_id,
+                'username': seller.username,
+                'email': seller.email,
+                'business_name': seller.business_name,
+                'approval_status': seller.approval_status,
+                'phone_number': seller.phone_number,
+                'created_at': seller.created_at.isoformat()
+            })
+        
+        return jsonify({
+            'success': True,
+            'users': user_list,
+            'sellers': seller_list
+        })
+    
+    except Exception as e:
+        print(f"Error fetching users: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error fetching users: {str(e)}'})
+
+@app.route('/api/admin/orders', methods=['GET'])
+def admin_get_orders():
+    """Get all orders for admin"""
+    # First check if admin is authenticated
+    auth_check = check_admin_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Admin not authenticated'})
+    
+    try:
+        orders = Order.query.order_by(Order.created_at.desc()).all()
+        order_list = []
+        
+        for order in orders:
+            # Get user info
+            user = User.query.get(order.user_id)
+            user_name = user.username if user else "Unknown User"
+            user_email = user.email if user else "Unknown Email"
+            
+            # Get order items
+            order_items = OrderItem.query.filter_by(order_id=order.order_id).all()
+            items = []
+            
+            for item in order_items:
+                product = Product.query.get(item.product_id)
+                if product:
+                    items.append({
+                        'id': str(product.product_id),
+                        'name': product.name,
+                        'price': item.price,
+                        'quantity': item.quantity
+                    })
+            
+            order_list.append({
+                'id': str(order.order_id),
+                'user_name': user_name,
+                'user_email': user_email,
+                'items': items,
+                'total': order.total,
+                'status': order.status,
+                'created_at': order.created_at.isoformat()
+            })
+        
+        return jsonify({
+            'success': True,
+            'orders': order_list
+        })
+    
+    except Exception as e:
+        print(f"Error fetching orders: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error fetching orders: {str(e)}'})
+
 @app.route('/api/admin/update-profile', methods=['PUT'])
 def update_admin_profile():
     """Update admin profile information"""
@@ -303,6 +435,8 @@ def get_products():
     except Exception as e:
         print(f"Error fetching products: {str(e)}")
         return jsonify({'success': False, 'message': f'Error fetching products: {str(e)}'})
+
+# ... keep existing code (all other product, message, cart, order routes)
 
 @app.route('/api/products/<product_id>', methods=['GET'])
 def get_product(product_id):
@@ -846,14 +980,15 @@ def create_order():
         data = request.json
         user_id = session['user_id']
         
+        # Generate UUID for order ID
+        order_id = str(uuid.uuid4())
+        
         # Create new order
         new_order = Order(
+            order_id=order_id,
             user_id=user_id,
-            total_amount=float(data['totalAmount']),
-            status='pending',
-            payment_method=data.get('paymentMethod', 'cash'),
-            delivery_address=data.get('deliveryAddress', ''),
-            phone_number=data.get('phoneNumber', '')
+            total=float(data['totalAmount']),
+            status='Pending'
         )
         
         db.session.add(new_order)
@@ -915,11 +1050,8 @@ def get_user_orders():
             order_list.append({
                 'id': str(order.order_id),
                 'items': items,
-                'totalAmount': order.total_amount,
+                'totalAmount': order.total,
                 'status': order.status,
-                'paymentMethod': order.payment_method,
-                'deliveryAddress': order.delivery_address,
-                'phoneNumber': order.phone_number,
                 'createdAt': order.created_at.isoformat()
             })
         

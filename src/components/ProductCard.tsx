@@ -34,9 +34,12 @@ const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
     : product.video;
 
   const renderMedia = () => {
-    const hasImage = product.image && product.mediaType !== 'video';
-    const hasVideo = product.video && (product.mediaType === 'video' || product.mediaType === 'both');
+    const hasImage = product.image && product.image.trim() !== '';
+    const hasVideo = product.video && product.video.trim() !== '';
+    
+    console.log('Media debug:', { hasImage, hasVideo, mediaType: product.mediaType, image: product.image, video: product.video });
 
+    // Show video if user clicked to show it, or if it's video-only
     if (hasVideo && (showVideo || product.mediaType === 'video')) {
       return (
         <div className="aspect-square w-full overflow-hidden relative">
@@ -45,6 +48,7 @@ const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
             className="h-full w-full object-cover"
             controls
             poster={hasImage ? imageUrl : undefined}
+            onError={(e) => console.error('Video load error:', e)}
           />
           {hasImage && (
             <button
@@ -58,6 +62,7 @@ const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
       );
     }
 
+    // Show image if available
     if (hasImage) {
       return (
         <div className="aspect-square w-full overflow-hidden relative">
@@ -65,6 +70,7 @@ const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
             src={imageUrl}
             alt={product.name}
             className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+            onError={(e) => console.error('Image load error:', e)}
           />
           {hasVideo && (
             <button
@@ -80,10 +86,10 @@ const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
       );
     }
 
-    // Fallback placeholder
+    // Fallback placeholder - only show if truly no media
     return (
       <div className="aspect-square w-full overflow-hidden bg-gray-200 flex items-center justify-center">
-        <p className="text-gray-500">No media</p>
+        <p className="text-gray-500">No media available</p>
       </div>
     );
   };

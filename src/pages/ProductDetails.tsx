@@ -75,9 +75,12 @@ const ProductDetails = () => {
     : product.video;
 
   const renderMedia = () => {
-    const hasImage = product.image && product.mediaType !== 'video';
-    const hasVideo = product.video && (product.mediaType === 'video' || product.mediaType === 'both');
+    const hasImage = product.image && product.image.trim() !== '';
+    const hasVideo = product.video && product.video.trim() !== '';
+    
+    console.log('ProductDetails media debug:', { hasImage, hasVideo, mediaType: product.mediaType, image: product.image, video: product.video });
 
+    // Show video if user clicked to show it, or if it's video-only
     if (hasVideo && (showVideo || product.mediaType === 'video')) {
       return (
         <div className="relative">
@@ -86,6 +89,7 @@ const ProductDetails = () => {
             className="w-full rounded-lg object-cover"
             controls
             poster={hasImage ? imageUrl : undefined}
+            onError={(e) => console.error('Video load error:', e)}
           />
           {hasImage && (
             <button
@@ -99,6 +103,7 @@ const ProductDetails = () => {
       );
     }
 
+    // Show image if available
     if (hasImage) {
       return (
         <div className="relative">
@@ -106,6 +111,7 @@ const ProductDetails = () => {
             src={imageUrl}
             alt={product.name}
             className="w-full rounded-lg object-cover"
+            onError={(e) => console.error('Image load error:', e)}
           />
           {hasVideo && (
             <button
@@ -121,6 +127,7 @@ const ProductDetails = () => {
       );
     }
 
+    // Fallback placeholder - only show if truly no media
     return (
       <div className="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center">
         <p className="text-gray-500">No media available</p>

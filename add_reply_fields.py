@@ -14,14 +14,18 @@ def add_reply_fields():
     with app.app_context():
         try:
             # Add reply column
-            db.engine.execute(text("ALTER TABLE messages ADD COLUMN reply TEXT NULL"))
+            with db.engine.connect() as conn:
+                conn.execute(text("ALTER TABLE messages ADD COLUMN reply TEXT NULL"))
+                conn.commit()
             print("Added 'reply' column to messages table")
         except Exception as e:
             print(f"Error adding reply column (might already exist): {e}")
         
         try:
             # Add replied_at column
-            db.engine.execute(text("ALTER TABLE messages ADD COLUMN replied_at DATETIME NULL"))
+            with db.engine.connect() as conn:
+                conn.execute(text("ALTER TABLE messages ADD COLUMN replied_at DATETIME NULL"))
+                conn.commit()
             print("Added 'replied_at' column to messages table")
         except Exception as e:
             print(f"Error adding replied_at column (might already exist): {e}")

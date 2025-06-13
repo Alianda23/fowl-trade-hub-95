@@ -1,6 +1,7 @@
 
 from flask import Flask
 from models import db, User, SellerProfile, AdminProfile, Product, Message, CartItem, Order, OrderItem
+from sqlalchemy import text
 import os
 
 app = Flask(__name__)
@@ -13,7 +14,9 @@ def setup_database():
     with app.app_context():
         try:
             # Check if database exists, if not create it
-            db.engine.execute("CREATE DATABASE IF NOT EXISTS kukuhub")
+            with db.engine.connect() as conn:
+                conn.execute(text("CREATE DATABASE IF NOT EXISTS kukuhub"))
+                conn.commit()
             
             # Create all tables
             db.create_all()

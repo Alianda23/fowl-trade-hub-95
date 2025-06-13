@@ -909,4 +909,96 @@ def create_order():
         return jsonify({'success': False, 'message': 'User not authenticated'})
     
     try:
-        data = request
+        data = request.json
+        user_id = session['user_id']
+        
+        # Create new order
+        new_order = Order(
+            user_id=user_id,
+            total_amount=float(data['totalAmount']),
+            status='pending',
+            payment_method=data.get('paymentMethod', 'cash'),
+            delivery_address=data.get('deliveryAddress', ''),
+            phone_number=data.get('phoneNumber', '')
+        )
+        
+        db.session.add(new_order)
+        db.session.flush()  # Get the order ID
+        
+        # Add order items
+        for item in data['items']:
+            order_item = OrderItem(
+                order_id=new_order.order_id,
+                product_id=int(item['id']),
+                quantity=item['quantity'],
+                price=float(item['price'])
+            )
+            db.session.add(order_item)
+        
+        # Clear the user's cart after creating order
+        CartItem.query.filter_by(user_id=user_id).delete()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Order created successfully',
+            'orderId': new_order.order_id
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating order: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error creating order: {str(e)}'})
+
+@app.route('/api/orders', methods=['GET'])
+def get_user_orders():
+    """Get orders for the authenticated user"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'User not authenticated'})
+    
+    try:
+        user_id = session['user_id']
+        orders = Order.query.filter_by(user_id=user_id).order_by(Order.created_at.desc()).all()
+        order_list = []
+        
+        for order in orders:
+            # Get order items
+            order_items = OrderItem.query.filter_by(order_id=order.order_id).all()
+            items = []
+            
+            for item in order_items:
+                product = Product.query.get(item.product_id)
+                if product:
+                    items.append({
+                        'id': str(product.product_id),
+                        'name': product.name,
+                        'price': item.price,
+                        'quantity': item.quantity,
+                        'image': product.image_url
+                    })
+            
+            order_list.append({
+                'id': str(order.order_id),
+                'items': items,
+                'totalAmount': order.total_amount,
+                'status': order.status,
+                'paymentMethod': order.payment_method,
+                'deliveryAddress': order.delivery_address,
+                'phoneNumber': order.phone_number,
+                'createdAt': order.created_at.isoformat()
+            })
+        
+        return jsonify({
+            'success': True,
+            'orders': order_list
+        })
+    
+    except Exception as e:
+        print(f"Error fetching orders: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error fetching orders: {str(e)}'})
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True)

@@ -52,6 +52,8 @@ class Product(db.Model):
     stock = db.Column(db.Integer, nullable=False, default=0)
     category = db.Column(db.String(100), nullable=False)
     image_url = db.Column(db.String(255), nullable=True)
+    video_url = db.Column(db.String(255), nullable=True)  # Added video support
+    media_type = db.Column(db.String(20), default='image', nullable=False)  # 'image', 'video', or 'both'
     
     seller_id = db.Column(db.Integer, db.ForeignKey('seller_profile.seller_id'), nullable=False)
     seller = db.relationship('SellerProfile', backref=db.backref('products', lazy=True))

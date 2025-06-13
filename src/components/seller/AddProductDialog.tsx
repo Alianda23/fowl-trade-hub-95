@@ -24,6 +24,7 @@ const AddProductDialog = ({ open, onOpenChange, onProductAdded }: AddProductDial
   const [selectedCategory, setSelectedCategory] = useState(categories[0]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mediaType, setMediaType] = useState<'image' | 'video' | 'both'>('image');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -31,7 +32,8 @@ const AddProductDialog = ({ open, onOpenChange, onProductAdded }: AddProductDial
     type: productTypes[categories[0] as keyof typeof productTypes][0],
     price: '',
     stock: '',
-    image: null as File | null
+    image: null as File | null,
+    video: null as File | null
   });
 
   useEffect(() => {
@@ -92,10 +94,29 @@ const AddProductDialog = ({ open, onOpenChange, onProductAdded }: AddProductDial
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
-    setFormData(prev => ({
-      ...prev,
-      image: file
-    }));
+    const inputName = e.target.name;
+    
+    if (inputName === 'image') {
+      setFormData(prev => ({
+        ...prev,
+        image: file
+      }));
+    } else if (inputName === 'video') {
+      setFormData(prev => ({
+        ...prev,
+        video: file
+      }));
+    }
+  };
+
+  const handleMediaTypeChange = (type: 'image' | 'video' | 'both') => {
+    setMediaType(type);
+    // Reset files when changing media type
+    if (type === 'image') {
+      setFormData(prev => ({ ...prev, video: null }));
+    } else if (type === 'video') {
+      setFormData(prev => ({ ...prev, image: null }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -111,7 +132,8 @@ const AddProductDialog = ({ open, onOpenChange, onProductAdded }: AddProductDial
       return;
     }
 
-    if (!formData.image) {
+    // Validate media files based on selected type
+    if (mediaType === 'image' && !formData.image) {
       toast({
         title: "Image Required",
         description: "Please select a product image",
@@ -120,10 +142,28 @@ const AddProductDialog = ({ open, onOpenChange, onProductAdded }: AddProductDial
       return;
     }
     
+    if (mediaType === 'video' && !formData.video) {
+      toast({
+        title: "Video Required",
+        description: "Please select a product video",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (mediaType === 'both' && (!formData.image || !formData.video)) {
+      toast({
+        title: "Both Image and Video Required",
+        description: "Please select both an image and a video",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
-      // Create FormData for multipart/form-data (for image upload)
+      // Create FormData for multipart/form-data (for file uploads)
       const productFormData = new FormData();
       productFormData.append('name', formData.name);
       productFormData.append('description', formData.description);
@@ -131,15 +171,19 @@ const AddProductDialog = ({ open, onOpenChange, onProductAdded }: AddProductDial
       productFormData.append('type', formData.type);
       productFormData.append('price', formData.price);
       productFormData.append('stock', formData.stock);
+      productFormData.append('media_type', mediaType);
+      
       if (formData.image) {
         productFormData.append('image', formData.image);
       }
+      if (formData.video) {
+        productFormData.append('video', formData.video);
+      }
       
-      // Fix the API endpoint URL - this was the issue
       const response = await fetch('http://localhost:5000/api/products/create', {
         method: 'POST',
         body: productFormData,
-        credentials: 'include' // Include cookies for auth
+        credentials: 'include'
       });
       
       const data = await response.json();
@@ -158,8 +202,10 @@ const AddProductDialog = ({ open, onOpenChange, onProductAdded }: AddProductDial
           type: productTypes[categories[0] as keyof typeof productTypes][0],
           price: '',
           stock: '',
-          image: null
+          image: null,
+          video: null
         });
+        setMediaType('image');
         
         // Close dialog
         onOpenChange(false);
@@ -277,16 +323,79 @@ const AddProductDialog = ({ open, onOpenChange, onProductAdded }: AddProductDial
               />
             </div>
           </div>
+          
+          {/* Media Type Selection */}
           <div>
-            <label className="mb-2 block text-sm font-medium">Product Image</label>
-            <input 
-              type="file" 
-              accept="image/*" 
-              className="w-full rounded-md border p-2" 
-              onChange={handleFileChange}
-              required 
-            />
+            <label className="mb-2 block text-sm font-medium">Media Type</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleMediaTypeChange('image')}
+                className={`px-3 py-1 rounded-md text-sm ${
+                  mediaType === 'image' 
+                    ? 'bg-sage-600 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Image Only
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMediaTypeChange('video')}
+                className={`px-3 py-1 rounded-md text-sm ${
+                  mediaType === 'video' 
+                    ? 'bg-sage-600 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Video Only
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMediaTypeChange('both')}
+                className={`px-3 py-1 rounded-md text-sm ${
+                  mediaType === 'both' 
+                    ? 'bg-sage-600 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Both
+              </button>
+            </div>
           </div>
+
+          {/* Conditional Media Upload Fields */}
+          {(mediaType === 'image' || mediaType === 'both') && (
+            <div>
+              <label className="mb-2 block text-sm font-medium">Product Image</label>
+              <input 
+                type="file" 
+                name="image"
+                accept="image/*" 
+                className="w-full rounded-md border p-2" 
+                onChange={handleFileChange}
+                required={mediaType === 'image'}
+              />
+            </div>
+          )}
+          
+          {(mediaType === 'video' || mediaType === 'both') && (
+            <div>
+              <label className="mb-2 block text-sm font-medium">Product Video</label>
+              <input 
+                type="file" 
+                name="video"
+                accept="video/*" 
+                className="w-full rounded-md border p-2" 
+                onChange={handleFileChange}
+                required={mediaType === 'video'}
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Supported formats: MP4, WebM, AVI (max 50MB)
+              </p>
+            </div>
+          )}
+          
           <Button 
             type="submit" 
             className="w-full bg-sage-600 hover:bg-sage-700"

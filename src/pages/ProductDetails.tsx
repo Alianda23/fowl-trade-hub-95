@@ -1,9 +1,8 @@
-
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { products as sampleProducts } from "@/data/products";
 import { useParams, useNavigate } from "react-router-dom";
-import { ShoppingCart, ArrowLeft, MessageSquare } from "lucide-react";
+import { ShoppingCart, ArrowLeft, MessageSquare, Play } from "lucide-react";
 import Copyright from "@/components/Copyright";
 import { useState, useEffect } from "react";
 import MessageDialog from "@/components/MessageDialog";
@@ -15,6 +14,7 @@ const ProductDetails = () => {
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [product, setProduct] = useState(sampleProducts.find(p => p.id === productId));
   const [isLoading, setIsLoading] = useState(true);
+  const [showVideo, setShowVideo] = useState(false);
 
   useEffect(() => {
     const fetchProductDetails = async () => {
@@ -65,10 +65,68 @@ const ProductDetails = () => {
     );
   }
   
-  // Fix image URL if it starts with /static
+  // Fix URLs if they start with /static
   const imageUrl = product.image?.startsWith('/static') 
     ? `http://localhost:5000${product.image}` 
     : product.image;
+  
+  const videoUrl = product.video?.startsWith('/static') 
+    ? `http://localhost:5000${product.video}` 
+    : product.video;
+
+  const renderMedia = () => {
+    const hasImage = product.image && product.mediaType !== 'video';
+    const hasVideo = product.video && (product.mediaType === 'video' || product.mediaType === 'both');
+
+    if (hasVideo && (showVideo || product.mediaType === 'video')) {
+      return (
+        <div className="relative">
+          <video
+            src={videoUrl}
+            className="w-full rounded-lg object-cover"
+            controls
+            poster={hasImage ? imageUrl : undefined}
+          />
+          {hasImage && (
+            <button
+              onClick={() => setShowVideo(false)}
+              className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-md hover:bg-opacity-70"
+            >
+              Show Image
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    if (hasImage) {
+      return (
+        <div className="relative">
+          <img
+            src={imageUrl}
+            alt={product.name}
+            className="w-full rounded-lg object-cover"
+          />
+          {hasVideo && (
+            <button
+              onClick={() => setShowVideo(true)}
+              className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 rounded-lg"
+            >
+              <div className="bg-white bg-opacity-90 rounded-full p-4">
+                <Play className="h-8 w-8 text-sage-600" />
+              </div>
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center">
+        <p className="text-gray-500">No media available</p>
+      </div>
+    );
+  };
 
   const handleAddToCart = () => {
     // Get existing cart from localStorage
@@ -124,11 +182,21 @@ const ProductDetails = () => {
       
       <div className="grid gap-8 md:grid-cols-2">
         <div>
-          <img
-            src={imageUrl}
-            alt={product.name}
-            className="w-full rounded-lg object-cover"
-          />
+          {renderMedia()}
+          {product.mediaType && (
+            <div className="mt-4 flex gap-2">
+              {(product.mediaType === 'image' || product.mediaType === 'both') && (
+                <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-md">
+                  📷 Image Available
+                </span>
+              )}
+              {(product.mediaType === 'video' || product.mediaType === 'both') && (
+                <span className="px-3 py-1 bg-purple-100 text-purple-800 text-sm rounded-md">
+                  🎥 Video Available
+                </span>
+              )}
+            </div>
+          )}
         </div>
         
         <div className="space-y-4">

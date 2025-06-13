@@ -21,6 +21,25 @@ def setup_database():
             # Create all tables
             db.create_all()
             
+            # Add video-related columns to existing products table if they don't exist
+            try:
+                with db.engine.connect() as conn:
+                    # Check if video_url column exists
+                    result = conn.execute(text("SHOW COLUMNS FROM products LIKE 'video_url'"))
+                    if not result.fetchone():
+                        conn.execute(text("ALTER TABLE products ADD COLUMN video_url VARCHAR(255) NULL"))
+                        print("Added video_url column to products table")
+                    
+                    # Check if media_type column exists
+                    result = conn.execute(text("SHOW COLUMNS FROM products LIKE 'media_type'"))
+                    if not result.fetchone():
+                        conn.execute(text("ALTER TABLE products ADD COLUMN media_type VARCHAR(20) DEFAULT 'image' NOT NULL"))
+                        print("Added media_type column to products table")
+                    
+                    conn.commit()
+            except Exception as e:
+                print(f"Note: Could not add video columns (they may already exist): {str(e)}")
+            
             print("Database setup completed successfully!")
             print("Created tables:")
             for table in db.metadata.tables.keys():

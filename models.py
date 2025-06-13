@@ -82,6 +82,10 @@ class Message(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('products.product_id'), nullable=True)
     product = db.relationship('Product', backref=db.backref('messages', lazy=True))
     
+    # Reply fields - ADDED THESE
+    reply = db.Column(db.Text, nullable=True)
+    replied_at = db.Column(db.DateTime, nullable=True)
+    
     is_read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

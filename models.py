@@ -95,7 +95,7 @@ class Message(db.Model):
 class CartItem(db.Model):
     __tablename__ = 'cart_items'
     
-    cart_item_id = db.Column(db.Integer, primary_key=True)  # Changed from 'id' to match database
+    id = db.Column(db.Integer, primary_key=True)  # Changed back to 'id' to match database
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     product_id = db.Column(db.Integer, db.ForeignKey('products.product_id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False, default=1)
@@ -122,7 +122,7 @@ class Order(db.Model):
 class OrderItem(db.Model):
     __tablename__ = 'order_items'
     
-    # Removed 'id' field since it doesn't exist in the database
+    # Use composite primary key for order_id and product_id
     order_id = db.Column(db.String(36), db.ForeignKey('orders.order_id'), nullable=False, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('products.product_id'), nullable=False, primary_key=True)
     quantity = db.Column(db.Integer, nullable=False)

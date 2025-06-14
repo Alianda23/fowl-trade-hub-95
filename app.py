@@ -211,12 +211,50 @@ def admin_dashboard_stats():
         return jsonify({'success': False, 'message': 'Admin not authenticated'})
     
     try:
-        # Get counts from database
-        total_products = Product.query.count()
-        total_users = User.query.count() + SellerProfile.query.count()  # Both buyers and sellers
-        total_orders = Order.query.count()
+        # Get counts from database with detailed logging
+        print("Fetching dashboard stats...")
         
-        print(f"Dashboard stats - Products: {total_products}, Users: {total_users}, Orders: {total_orders}")
+        # Check database connection
+        print("Checking database connection...")
+        
+        # Get counts with detailed logging
+        total_products = Product.query.count()
+        print(f"Products query result: {total_products}")
+        
+        total_users_buyers = User.query.count()
+        print(f"Buyers count: {total_users_buyers}")
+        
+        total_users_sellers = SellerProfile.query.count()
+        print(f"Sellers count: {total_users_sellers}")
+        
+        total_users = total_users_buyers + total_users_sellers
+        print(f"Total users: {total_users}")
+        
+        total_orders = Order.query.count()
+        print(f"Orders count: {total_orders}")
+        
+        # Also check if we can fetch some sample data
+        sample_users = User.query.limit(5).all()
+        print(f"Sample users found: {len(sample_users)}")
+        for user in sample_users:
+            print(f"User: {user.username} - {user.email}")
+        
+        sample_sellers = SellerProfile.query.limit(5).all()
+        print(f"Sample sellers found: {len(sample_sellers)}")
+        for seller in sample_sellers:
+            print(f"Seller: {seller.username} - {seller.email}")
+        
+        sample_products = Product.query.limit(5).all()
+        print(f"Sample products found: {len(sample_products)}")
+        for product in sample_products:
+            print(f"Product: {product.name} - Price: {product.price}")
+        
+        sample_orders = Order.query.limit(5).all()
+        print(f"Sample orders found: {len(sample_orders)}")
+        for order in sample_orders:
+            print(f"Order: {order.order_id} - Total: {order.total}")
+        
+        print(f"Final dashboard stats - Products: {total_products}, Users: {total_users}, Orders: {total_orders}")
         
         return jsonify({
             'success': True,
@@ -229,6 +267,8 @@ def admin_dashboard_stats():
     
     except Exception as e:
         print(f"Error fetching dashboard stats: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
         return jsonify({'success': False, 'message': f'Error fetching dashboard statistics: {str(e)}'})
 
 @app.route('/api/admin/users', methods=['GET'])

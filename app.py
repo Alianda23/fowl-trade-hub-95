@@ -1,5 +1,4 @@
-
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify, session, make_response
 from flask_cors import CORS
 from models import db, User, SellerProfile, AdminProfile, Product, Message, CartItem, Order, OrderItem
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,6 +7,8 @@ import os
 from app_auth import check_admin_auth, check_seller_auth
 from routes.mpesa import mpesa_routes
 import uuid
+import csv
+import io
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/kukuhub'
@@ -1063,6 +1064,247 @@ def get_user_orders():
     except Exception as e:
         print(f"Error fetching orders: {str(e)}")
         return jsonify({'success': False, 'message': f'Error fetching orders: {str(e)}'})
+
+# Admin report generation endpoints
+@app.route('/api/admin/reports/users/download', methods=['GET'])
+def download_users_report():
+    """Generate and download users report as CSV"""
+    auth_check = check_admin_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Admin not authenticated'})
+    
+    try:
+        # Create CSV data
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write headers
+        writer.writerow(['User ID', 'Username', 'Email', 'Phone Number', 'Registration Date', 'User Type'])
+        
+        # Write buyers data
+        users = User.query.all()
+        for user in users:
+            writer.writerow([
+                user.user_id,
+                user.username,
+                user.email,
+                user.phone_number or 'N/A',
+                user.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'Buyer'
+            ])
+        
+        # Write sellers data
+        sellers = SellerProfile.query.all()
+        for seller in sellers:
+            writer.writerow([
+                f"S-{seller.seller_id}",
+                seller.username,
+                seller.email,
+                seller.phone_number or 'N/A',
+                seller.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                f'Seller ({seller.approval_status})'
+            ])
+        
+        # Create response
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv'
+        response.headers['Content-Disposition'] = f'attachment; filename=users_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        
+        return response
+    
+    except Exception as e:
+        print(f"Error generating users report: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error generating report: {str(e)}'})
+
+@app.route('/api/admin/reports/products/download', methods=['GET'])
+def download_products_report():
+    """Generate and download products report as CSV"""
+    auth_check = check_admin_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Admin not authenticated'})
+    
+    try:
+        # Create CSV data
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write headers
+        writer.writerow(['Product ID', 'Product Name', 'Category', 'Price (KShs)', 'Stock', 'Seller', 'Created Date'])
+        
+        # Write products data
+        products = Product.query.all()
+        for product in products:
+            seller = SellerProfile.query.get(product.seller_id)
+            seller_name = seller.business_name if seller else 'Unknown Seller'
+            
+            writer.writerow([
+                product.product_id,
+                product.name,
+                product.category,
+                product.price,
+                product.stock,
+                seller_name,
+                product.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            ])
+        
+        # Create response
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv'
+        response.headers['Content-Disposition'] = f'attachment; filename=products_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        
+        return response
+    
+    except Exception as e:
+        print(f"Error generating products report: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error generating report: {str(e)}'})
+
+@app.route('/api/admin/reports/orders/download', methods=['GET'])
+def download_orders_report():
+    """Generate and download orders report as CSV"""
+    auth_check = check_admin_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Admin not authenticated'})
+    
+    try:
+        # Create CSV data
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write headers
+        writer.writerow(['Order ID', 'Customer', 'Customer Email', 'Total Amount (KShs)', 'Status', 'Order Date', 'Items Count'])
+        
+        # Write orders data
+        orders = Order.query.all()
+        for order in orders:
+            user = User.query.get(order.user_id)
+            customer_name = user.username if user else 'Unknown Customer'
+            customer_email = user.email if user else 'Unknown Email'
+            
+            # Count order items
+            items_count = OrderItem.query.filter_by(order_id=order.order_id).count()
+            
+            writer.writerow([
+                order.order_id,
+                customer_name,
+                customer_email,
+                order.total,
+                order.status,
+                order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                items_count
+            ])
+        
+        # Create response
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv'
+        response.headers['Content-Disposition'] = f'attachment; filename=orders_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        
+        return response
+    
+    except Exception as e:
+        print(f"Error generating orders report: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error generating report: {str(e)}'})
+
+@app.route('/api/admin/reports/sellers/download', methods=['GET'])
+def download_sellers_report():
+    """Generate and download sellers report as CSV"""
+    auth_check = check_admin_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Admin not authenticated'})
+    
+    try:
+        # Create CSV data
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write headers
+        writer.writerow(['Seller ID', 'Username', 'Business Name', 'Email', 'Phone', 'Status', 'Products Count', 'Registration Date'])
+        
+        # Write sellers data
+        sellers = SellerProfile.query.all()
+        for seller in sellers:
+            # Count products for this seller
+            products_count = Product.query.filter_by(seller_id=seller.seller_id).count()
+            
+            writer.writerow([
+                seller.seller_id,
+                seller.username,
+                seller.business_name,
+                seller.email,
+                seller.phone_number or 'N/A',
+                seller.approval_status,
+                products_count,
+                seller.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            ])
+        
+        # Create response
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv'
+        response.headers['Content-Disposition'] = f'attachment; filename=sellers_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        
+        return response
+    
+    except Exception as e:
+        print(f"Error generating sellers report: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error generating report: {str(e)}'})
+
+@app.route('/api/admin/reports/sales/download', methods=['GET'])
+def download_sales_report():
+    """Generate and download sales summary report as CSV"""
+    auth_check = check_admin_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Admin not authenticated'})
+    
+    try:
+        # Create CSV data
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write headers
+        writer.writerow(['Order ID', 'Product Name', 'Seller', 'Quantity', 'Unit Price (KShs)', 'Total (KShs)', 'Order Date', 'Status'])
+        
+        # Write sales data (order items with details)
+        order_items = db.session.query(OrderItem, Order, Product, SellerProfile).join(
+            Order, OrderItem.order_id == Order.order_id
+        ).join(
+            Product, OrderItem.product_id == Product.product_id
+        ).join(
+            SellerProfile, Product.seller_id == SellerProfile.seller_id
+        ).all()
+        
+        for order_item, order, product, seller in order_items:
+            total_price = order_item.quantity * order_item.price
+            
+            writer.writerow([
+                order.order_id,
+                product.name,
+                seller.business_name,
+                order_item.quantity,
+                order_item.price,
+                total_price,
+                order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                order.status
+            ])
+        
+        # Create response
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv'
+        response.headers['Content-Disposition'] = f'attachment; filename=sales_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        
+        return response
+    
+    except Exception as e:
+        print(f"Error generating sales report: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error generating report: {str(e)}'})
 
 if __name__ == '__main__':
     with app.app_context():

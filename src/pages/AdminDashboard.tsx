@@ -1,7 +1,6 @@
-
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Users, Package, ShoppingCart, MessageSquare, ArrowLeft, User, BarChart3 } from "lucide-react";
+import { Users, Package, ShoppingCart, ArrowLeft, User, BarChart3, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -135,7 +134,7 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <div className="p-6">
         {/* Stats Cards */}
-        <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="rounded-lg border bg-white p-6">
             <div className="flex items-center gap-4">
               <div className="bg-blue-100 p-3 rounded-full">
@@ -168,18 +167,6 @@ const AdminDashboard = () => {
               <div>
                 <h3 className="text-lg font-medium text-gray-600">Total Orders</h3>
                 <p className="text-2xl font-bold">342</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg border bg-white p-6">
-            <div className="flex items-center gap-4">
-              <div className="bg-purple-100 p-3 rounded-full">
-                <MessageSquare className="h-6 w-6 text-purple-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-medium text-gray-600">Messages</h3>
-                <p className="text-2xl font-bold">128</p>
               </div>
             </div>
           </div>
@@ -243,26 +230,26 @@ const AdminDashboard = () => {
 
           <div className="bg-white rounded-lg border p-6">
             <div className="flex items-center gap-4 mb-4">
-              <div className="bg-orange-100 p-3 rounded-full">
-                <BarChart3 className="h-6 w-6 text-orange-600" />
+              <div className="bg-purple-100 p-3 rounded-full">
+                <FileText className="h-6 w-6 text-purple-600" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold">System Reports</h3>
-                <p className="text-gray-600">View comprehensive analytics</p>
+                <h3 className="text-lg font-semibold">Download Reports</h3>
+                <p className="text-gray-600">Generate and download CSV reports</p>
               </div>
             </div>
             <Button 
               className="w-full"
               onClick={() => navigate('/admin/reports')}
             >
-              View Reports
+              Generate Reports
             </Button>
           </div>
 
           <div className="bg-white rounded-lg border p-6 md:col-span-2">
             <div className="flex items-center gap-4 mb-4">
-              <div className="bg-purple-100 p-3 rounded-full">
-                <MessageSquare className="h-6 w-6 text-purple-600" />
+              <div className="bg-orange-100 p-3 rounded-full">
+                <BarChart3 className="h-6 w-6 text-orange-600" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold">Recent Activity</h3>

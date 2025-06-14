@@ -7,7 +7,6 @@ export interface Product {
   description: string;
   image: string;
   video?: string;
-  videoUrl?: string; // Added this to match backend response
   mediaType?: 'image' | 'video' | 'both';
   stock: number;
   sellerId?: string;

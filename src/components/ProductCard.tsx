@@ -29,24 +29,15 @@ const ProductCard = ({ product, onAddToCart }: ProductCardProps) => {
     ? `http://localhost:5000${product.image}` 
     : product.image;
   
-  // Fix video URL - check both 'video' and 'videoUrl' properties
-  const videoUrl = (product.video || product.videoUrl)?.startsWith('/static') 
-    ? `http://localhost:5000${product.video || product.videoUrl}` 
-    : product.video || product.videoUrl;
+  const videoUrl = product.video?.startsWith('/static') 
+    ? `http://localhost:5000${product.video}` 
+    : product.video;
 
   const renderMedia = () => {
     const hasImage = product.image && product.image.trim() !== '';
-    const hasVideo = (product.video || product.videoUrl) && (product.video || product.videoUrl).trim() !== '';
+    const hasVideo = product.video && product.video.trim() !== '';
     
-    console.log('Media debug:', { 
-      hasImage, 
-      hasVideo, 
-      mediaType: product.mediaType, 
-      image: product.image, 
-      video: product.video,
-      videoUrl: product.videoUrl,
-      finalVideoUrl: videoUrl
-    });
+    console.log('Media debug:', { hasImage, hasVideo, mediaType: product.mediaType, image: product.image, video: product.video });
 
     // Show video if user clicked to show it, or if it's video-only
     if (hasVideo && (showVideo || product.mediaType === 'video')) {

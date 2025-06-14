@@ -1,291 +1,198 @@
 
-import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Users, Package, ShoppingCart, MessageSquare, ArrowLeft, User, BarChart3 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Users, Package, ShoppingCart, TrendingUp, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+interface DashboardStats {
+  products: number;
+  users: number;
+  orders: number;
+}
+
 const AdminDashboard = () => {
-  const navigate = useNavigate();
+  const [stats, setStats] = useState<DashboardStats>({ products: 0, users: 0, orders: 0 });
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [adminEmail, setAdminEmail] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        // Check if user is authenticated in localStorage
-        const storedAuth = localStorage.getItem('isAdminAuthenticated');
-        const storedEmail = localStorage.getItem('adminEmail');
-        
-        if (storedAuth === 'true' && storedEmail) {
-          // Verify with backend
-          const response = await fetch('http://localhost:5000/api/admin/check-auth', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            credentials: 'include'
-          });
-          
-          const data = await response.json();
-          console.log("Admin auth check response:", data);
-          
-          if (data.isAuthenticated) {
-            setIsAuthenticated(true);
-            setAdminEmail(storedEmail);
-          } else {
-            // If backend says not authenticated, clear localStorage and redirect to login
-            localStorage.removeItem('isAdminAuthenticated');
-            localStorage.removeItem('adminEmail');
-            setIsLoading(false);
-            navigate('/admin/login');
-          }
-        } else {
-          setIsLoading(false);
-          // If no authentication in localStorage, redirect to login
-          navigate('/admin/login');
-        }
-      } catch (error) {
-        console.error("Auth check error:", error);
-        setIsLoading(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    fetchDashboardStats();
+  }, []);
 
-    checkAuth();
-  }, [navigate]);
-
-  const handleLogout = async () => {
+  const fetchDashboardStats = async () => {
     try {
-      await fetch('http://localhost:5000/api/logout', {
-        method: 'POST',
-        credentials: 'include'
+      setLoading(true);
+      console.log("Fetching real-time dashboard stats from Flask backend...");
+      
+      const response = await fetch('http://localhost:5000/api/admin/dashboard-stats', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
       
-      // Clear localStorage
-      localStorage.removeItem('isAdminAuthenticated');
-      localStorage.removeItem('adminEmail');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       
-      setIsAuthenticated(false);
-      setAdminEmail(null);
+      const data = await response.json();
+      console.log("Dashboard stats received:", data);
       
-      toast({
-        title: "Logged out",
-        description: "You have been logged out successfully",
-      });
-      
-      navigate('/admin/login');
+      if (data.success) {
+        setStats(data.stats);
+      } else {
+        throw new Error(data.message || 'Failed to fetch dashboard stats');
+      }
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error("Error fetching dashboard stats:", error);
+      toast({
+        title: "Error fetching dashboard data",
+        description: "Could not load real-time data from server. Please check your Flask backend.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sage-600 mx-auto mb-4"></div>
+          <p>Loading dashboard data...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b">
-        <div className="flex items-center justify-between p-6">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate("/")}>
-              <ArrowLeft className="h-5 w-5" />
-              Back
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-              <p className="text-sm text-gray-600">Manage platform operations</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            {isAuthenticated ? (
-              <>
-                <Button 
-                  variant="ghost" 
-                  className="gap-2"
-                  onClick={() => navigate('/admin/profile')}
-                >
-                  <User className="h-5 w-5" />
-                  Profile
-                </Button>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">{adminEmail}</span>
-                  <Button variant="ghost" onClick={handleLogout}>
-                    Logout
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <Button
-                className="bg-sage-600 hover:bg-sage-700"
-                onClick={() => navigate('/admin/login')}
-              >
-                Sign In
-              </Button>
-            )}
-          </div>
+    <div className="p-6">
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+          <p className="text-gray-600">Welcome to KukuHub Admin Panel</p>
         </div>
+        <Button onClick={fetchDashboardStats} variant="outline">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh Data
+        </Button>
       </div>
 
-      {/* Main Content */}
-      <div className="p-6">
-        {/* Stats Cards */}
-        <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="rounded-lg border bg-white p-6">
-            <div className="flex items-center gap-4">
-              <div className="bg-blue-100 p-3 rounded-full">
-                <Users className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-medium text-gray-600">Total Users</h3>
-                <p className="text-2xl font-bold">1,250</p>
-              </div>
-            </div>
-          </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.products}</div>
+            <p className="text-xs text-muted-foreground">
+              Active listings on platform
+            </p>
+          </CardContent>
+        </Card>
 
-          <div className="rounded-lg border bg-white p-6">
-            <div className="flex items-center gap-4">
-              <div className="bg-sage-100 p-3 rounded-full">
-                <Package className="h-6 w-6 text-sage-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-medium text-gray-600">Total Products</h3>
-                <p className="text-2xl font-bold">456</p>
-              </div>
-            </div>
-          </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.users}</div>
+            <p className="text-xs text-muted-foreground">
+              Registered buyers and sellers
+            </p>
+          </CardContent>
+        </Card>
 
-          <div className="rounded-lg border bg-white p-6">
-            <div className="flex items-center gap-4">
-              <div className="bg-green-100 p-3 rounded-full">
-                <ShoppingCart className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-medium text-gray-600">Total Orders</h3>
-                <p className="text-2xl font-bold">342</p>
-              </div>
-            </div>
-          </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.orders}</div>
+            <p className="text-xs text-muted-foreground">
+              Orders processed
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
-          <div className="rounded-lg border bg-white p-6">
-            <div className="flex items-center gap-4">
-              <div className="bg-purple-100 p-3 rounded-full">
-                <MessageSquare className="h-6 w-6 text-purple-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-medium text-gray-600">Messages</h3>
-                <p className="text-2xl font-bold">128</p>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <Card className="cursor-pointer hover:bg-gray-50 transition-colors">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Manage Users
+            </CardTitle>
+            <CardDescription>
+              View and manage user accounts
+            </CardDescription>
+          </CardHeader>
+        </Card>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg border p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="bg-blue-100 p-3 rounded-full">
-                <Users className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold">Manage Users</h3>
-                <p className="text-gray-600">View and manage user accounts</p>
-              </div>
-            </div>
-            <Button 
-              className="w-full"
-              onClick={() => navigate('/admin/users')}
-            >
-              View Users
-            </Button>
-          </div>
+        <Card className="cursor-pointer hover:bg-gray-50 transition-colors">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Manage Products
+            </CardTitle>
+            <CardDescription>
+              Review and moderate products
+            </CardDescription>
+          </CardHeader>
+        </Card>
 
-          <div className="bg-white rounded-lg border p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="bg-sage-100 p-3 rounded-full">
-                <Package className="h-6 w-6 text-sage-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold">Manage Products</h3>
-                <p className="text-gray-600">Review and moderate products</p>
-              </div>
-            </div>
-            <Button 
-              className="w-full"
-              onClick={() => navigate('/admin/products')}
-            >
-              View Products
-            </Button>
-          </div>
-
-          <div className="bg-white rounded-lg border p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="bg-green-100 p-3 rounded-full">
-                <ShoppingCart className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold">Manage Orders</h3>
-                <p className="text-gray-600">Track and manage orders</p>
-              </div>
-            </div>
-            <Button 
-              className="w-full"
-              onClick={() => navigate('/admin/orders')}
-            >
+        <Card className="cursor-pointer hover:bg-gray-50 transition-colors">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5" />
               View Orders
-            </Button>
-          </div>
+            </CardTitle>
+            <CardDescription>
+              Monitor order activity
+            </CardDescription>
+          </CardHeader>
+        </Card>
 
-          <div className="bg-white rounded-lg border p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="bg-orange-100 p-3 rounded-full">
-                <BarChart3 className="h-6 w-6 text-orange-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold">System Reports</h3>
-                <p className="text-gray-600">View comprehensive analytics</p>
-              </div>
-            </div>
-            <Button 
-              className="w-full"
-              onClick={() => navigate('/admin/reports')}
-            >
-              View Reports
-            </Button>
-          </div>
-
-          <div className="bg-white rounded-lg border p-6 md:col-span-2">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="bg-purple-100 p-3 rounded-full">
-                <MessageSquare className="h-6 w-6 text-purple-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold">Recent Activity</h3>
-                <p className="text-gray-600">Latest platform activities</p>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm">New seller registration: Poultry Farm Co.</span>
-                <span className="text-xs text-gray-500">2 hours ago</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm">Product reported: Day-old Chicks</span>
-                <span className="text-xs text-gray-500">5 hours ago</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm">Large order processed: KShs 25,000</span>
-                <span className="text-xs text-gray-500">1 day ago</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <Card className="cursor-pointer hover:bg-gray-50 transition-colors">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Analytics
+            </CardTitle>
+            <CardDescription>
+              View detailed reports
+            </CardDescription>
+          </CardHeader>
+        </Card>
       </div>
+
+      {/* Recent Activity Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Activity</CardTitle>
+          <CardDescription>Latest platform activities</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">System Status</p>
+                <p className="text-sm text-muted-foreground">All systems operational</p>
+              </div>
+              <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

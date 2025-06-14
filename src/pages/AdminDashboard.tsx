@@ -4,31 +4,12 @@ import { Users, Package, ShoppingCart, ArrowLeft, User, BarChart3, FileText } fr
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
-interface DashboardStats {
-  total_users: number;
-  total_products: number;
-  total_orders: number;
-}
-
-interface RecentActivity {
-  type: string;
-  description: string;
-  timestamp: string;
-}
-
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminEmail, setAdminEmail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState<DashboardStats>({
-    total_users: 0,
-    total_products: 0,
-    total_orders: 0
-  });
-  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
-  const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -101,53 +82,6 @@ const AdminDashboard = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchDashboardStats = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/admin/dashboard-stats', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include'
-        });
-        
-        const data = await response.json();
-        console.log("Dashboard stats response:", data);
-        
-        if (data.success) {
-          setStats(data.stats);
-          setRecentActivities(data.recent_activities || []);
-        } else {
-          console.error("Failed to fetch dashboard stats:", data.error);
-        }
-      } catch (error) {
-        console.error("Error fetching dashboard stats:", error);
-      } finally {
-        setStatsLoading(false);
-      }
-    };
-
-    if (isAuthenticated) {
-      fetchDashboardStats();
-    }
-  }, [isAuthenticated]);
-
-  const formatTimeAgo = (timestamp: string) => {
-    const now = new Date();
-    const activityTime = new Date(timestamp);
-    const diffInHours = Math.floor((now.getTime() - activityTime.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) {
-      return 'Less than 1 hour ago';
-    } else if (diffInHours < 24) {
-      return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
-    } else {
-      const diffInDays = Math.floor(diffInHours / 24);
-      return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
-    }
-  };
-
   if (isLoading) {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
   }
@@ -208,9 +142,7 @@ const AdminDashboard = () => {
               </div>
               <div>
                 <h3 className="text-lg font-medium text-gray-600">Total Users</h3>
-                <p className="text-2xl font-bold">
-                  {statsLoading ? "Loading..." : stats.total_users.toLocaleString()}
-                </p>
+                <p className="text-2xl font-bold">1,250</p>
               </div>
             </div>
           </div>
@@ -222,9 +154,7 @@ const AdminDashboard = () => {
               </div>
               <div>
                 <h3 className="text-lg font-medium text-gray-600">Total Products</h3>
-                <p className="text-2xl font-bold">
-                  {statsLoading ? "Loading..." : stats.total_products.toLocaleString()}
-                </p>
+                <p className="text-2xl font-bold">456</p>
               </div>
             </div>
           </div>
@@ -236,9 +166,7 @@ const AdminDashboard = () => {
               </div>
               <div>
                 <h3 className="text-lg font-medium text-gray-600">Total Orders</h3>
-                <p className="text-2xl font-bold">
-                  {statsLoading ? "Loading..." : stats.total_orders.toLocaleString()}
-                </p>
+                <p className="text-2xl font-bold">342</p>
               </div>
             </div>
           </div>
@@ -329,18 +257,18 @@ const AdminDashboard = () => {
               </div>
             </div>
             <div className="space-y-3">
-              {statsLoading ? (
-                <div className="text-center text-gray-500">Loading activities...</div>
-              ) : recentActivities.length > 0 ? (
-                recentActivities.map((activity, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <span className="text-sm">{activity.description}</span>
-                    <span className="text-xs text-gray-500">{formatTimeAgo(activity.timestamp)}</span>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center text-gray-500">No recent activities</div>
-              )}
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <span className="text-sm">New seller registration: Poultry Farm Co.</span>
+                <span className="text-xs text-gray-500">2 hours ago</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <span className="text-sm">Product reported: Day-old Chicks</span>
+                <span className="text-xs text-gray-500">5 hours ago</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <span className="text-sm">Large order processed: KShs 25,000</span>
+                <span className="text-xs text-gray-500">1 day ago</span>
+              </div>
             </div>
           </div>
         </div>

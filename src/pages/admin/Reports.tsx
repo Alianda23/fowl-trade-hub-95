@@ -6,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
-import { FileText, Download, TrendingUp, Users, Package, ShoppingCart, MessageSquare } from "lucide-react";
+import { FileText, Download, TrendingUp, Users, Package, ShoppingCart, MessageSquare, RefreshCw } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ReportData {
   salesReport: {
@@ -36,6 +37,7 @@ interface ReportData {
     unreadMessages: number;
     systemUptime: string;
     storageUsed: string;
+    recentActivity: Array<{ action: string; timestamp: string; user: string }>;
   };
 }
 
@@ -43,6 +45,7 @@ const Reports = () => {
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("sales");
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchReportData();
@@ -51,79 +54,79 @@ const Reports = () => {
   const fetchReportData = async () => {
     try {
       setLoading(true);
-      // Mock data for demonstration - in real app, this would come from your backend
-      const mockData: ReportData = {
-        salesReport: {
-          totalSales: 125000,
-          totalOrders: 342,
-          avgOrderValue: 365,
-          monthlySales: [
-            { month: "Jan", sales: 15000, orders: 45 },
-            { month: "Feb", sales: 18000, orders: 52 },
-            { month: "Mar", sales: 22000, orders: 68 },
-            { month: "Apr", sales: 25000, orders: 71 },
-            { month: "May", sales: 28000, orders: 78 },
-            { month: "Jun", sales: 17000, orders: 28 },
-          ]
-        },
-        userReport: {
-          totalUsers: 1250,
-          totalSellers: 87,
-          newUsersThisMonth: 45,
-          userGrowth: [
-            { month: "Jan", users: 1000, sellers: 65 },
-            { month: "Feb", users: 1050, sellers: 68 },
-            { month: "Mar", users: 1120, sellers: 72 },
-            { month: "Apr", users: 1180, sellers: 78 },
-            { month: "May", users: 1220, sellers: 82 },
-            { month: "Jun", users: 1250, sellers: 87 },
-          ]
-        },
-        productReport: {
-          totalProducts: 456,
-          topCategories: [
-            { category: "Live Poultry", count: 125, percentage: 27 },
-            { category: "Poultry Products", count: 98, percentage: 21 },
-            { category: "Feeds & Supplements", count: 89, percentage: 20 },
-            { category: "Equipment & Supplies", count: 78, percentage: 17 },
-            { category: "Health Products", count: 66, percentage: 15 },
-          ],
-          lowStockProducts: [
-            { name: "Day-old Chicks", stock: 5, category: "Live Poultry" },
-            { name: "Layer Mash", stock: 3, category: "Feeds & Supplements" },
-            { name: "Newcastle Vaccine", stock: 2, category: "Health Products" },
-          ]
-        },
-        sellerReport: {
-          activeSellers: 75,
-          pendingSellers: 12,
-          topSellers: [
-            { name: "Sample Poultry Farm", sales: 45000, products: 25 },
-            { name: "Broiler Express", sales: 38000, products: 18 },
-            { name: "Poultry Feed Suppliers", sales: 32000, products: 22 },
-            { name: "Healthy Birds Co.", sales: 28000, products: 15 },
-          ]
-        },
-        systemReport: {
-          totalMessages: 1847,
-          unreadMessages: 23,
-          systemUptime: "99.8%",
-          storageUsed: "2.4 GB"
-        }
-      };
+      console.log("Fetching real-time report data from Flask backend...");
       
-      setReportData(mockData);
+      // Fetch all report data from your Flask backend
+      const response = await fetch('http://localhost:5000/api/admin/reports', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log("Report data received:", data);
+      
+      if (data.success) {
+        setReportData(data.reports);
+      } else {
+        throw new Error(data.message || 'Failed to fetch report data');
+      }
     } catch (error) {
       console.error("Error fetching report data:", error);
+      toast({
+        title: "Error fetching reports",
+        description: "Could not load real-time data from server. Please check your Flask backend.",
+        variant: "destructive",
+      });
+      
+      // Fallback to show error state instead of mock data
+      setReportData(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleExportReport = (reportType: string) => {
-    // Mock export functionality
-    console.log(`Exporting ${reportType} report...`);
-    // In a real app, this would trigger a download of CSV/PDF report
+  const handleExportReport = async (reportType: string) => {
+    try {
+      console.log(`Exporting ${reportType} report...`);
+      
+      const response = await fetch(`http://localhost:5000/api/admin/reports/export/${reportType}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `${reportType}_report_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Export successful",
+          description: `${reportType} report has been downloaded.`,
+        });
+      } else {
+        throw new Error('Export failed');
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      toast({
+        title: "Export failed",
+        description: "Could not export report. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -133,21 +136,38 @@ const Reports = () => {
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sage-600 mx-auto mb-4"></div>
-          <p>Loading reports...</p>
+          <p>Loading real-time reports from server...</p>
         </div>
       </div>
     );
   }
 
   if (!reportData) {
-    return <div className="p-6">Failed to load report data</div>;
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Failed to load report data</h1>
+          <p className="text-gray-600 mb-4">Could not connect to Flask backend server.</p>
+          <Button onClick={fetchReportData} className="bg-sage-600 hover:bg-sage-700">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">System Reports</h1>
-        <p className="text-gray-600">Comprehensive analytics and reporting dashboard</p>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">System Reports</h1>
+          <p className="text-gray-600">Real-time analytics and reporting dashboard</p>
+        </div>
+        <Button onClick={fetchReportData} variant="outline">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh Data
+        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -519,6 +539,35 @@ const Reports = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Recent Activity Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>Latest system activities and user actions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[300px]">
+                <div className="space-y-3">
+                  {reportData.systemReport.recentActivity?.map((activity, index) => (
+                    <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-medium">{activity.action}</p>
+                        <p className="text-sm text-gray-600">by {activity.user}</p>
+                      </div>
+                      <span className="text-sm text-gray-500">
+                        {new Date(activity.timestamp).toLocaleString()}
+                      </span>
+                    </div>
+                  )) || (
+                    <div className="text-center text-gray-500 py-8">
+                      No recent activity data available
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

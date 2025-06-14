@@ -206,11 +206,8 @@ def admin_auth_check():
 @app.route('/api/admin/dashboard-stats', methods=['GET'])
 def admin_dashboard_stats():
     """Get dashboard statistics for admin"""
-    # First check if admin is authenticated
-    auth_check = check_admin_auth()
-    auth_data = auth_check.get_json()
-    
-    if not auth_data.get('isAuthenticated'):
+    # Check if admin is authenticated
+    if 'admin_id' not in session:
         return jsonify({'success': False, 'message': 'Admin not authenticated'})
     
     try:
@@ -218,6 +215,8 @@ def admin_dashboard_stats():
         total_products = Product.query.count()
         total_users = User.query.count() + SellerProfile.query.count()  # Both buyers and sellers
         total_orders = Order.query.count()
+        
+        print(f"Dashboard stats - Products: {total_products}, Users: {total_users}, Orders: {total_orders}")
         
         return jsonify({
             'success': True,

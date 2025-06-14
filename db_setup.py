@@ -51,6 +51,12 @@ def setup_database():
                         conn.execute(text("ALTER TABLE orders ADD COLUMN updated_at DATETIME NULL"))
                         print("Added updated_at column to orders table")
                     
+                    # Check and add missing columns to order_items table
+                    result = conn.execute(text("SHOW COLUMNS FROM order_items LIKE 'price'"))
+                    if not result.fetchone():
+                        conn.execute(text("ALTER TABLE order_items ADD COLUMN price FLOAT NOT NULL DEFAULT 0.0"))
+                        print("Added price column to order_items table")
+                    
                     # Check and add missing columns to messages table for replies
                     result = conn.execute(text("SHOW COLUMNS FROM messages LIKE 'reply'"))
                     if not result.fetchone():

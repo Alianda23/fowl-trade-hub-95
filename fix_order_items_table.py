@@ -23,15 +23,24 @@ def fix_order_items_table():
                 for column in columns:
                     print(f"  - {column}")
                 
-                # Check if 'id' column exists
+                # Check if 'price' column exists
+                has_price_column = any(col[0] == 'price' for col in columns)
+                
+                if not has_price_column:
+                    print("Missing 'price' column - adding it...")
+                    conn.execute(text("ALTER TABLE order_items ADD COLUMN price FLOAT NOT NULL DEFAULT 0.0"))
+                    print("Added price column to order_items table")
+                else:
+                    print("Price column already exists - table structure is correct.")
+                
+                # Check if 'id' column exists (it shouldn't for our composite key model)
                 has_id_column = any(col[0] == 'id' for col in columns)
                 
-                if not has_id_column:
-                    print("The 'id' column is missing. The table structure is correct for our new model.")
-                    print("No changes needed - the model has been updated to match the database.")
+                if has_id_column:
+                    print("WARNING: Table has 'id' column but our model uses composite primary key.")
+                    print("Consider removing the 'id' column if not needed elsewhere.")
                 else:
-                    print("The 'id' column exists but our model doesn't need it.")
-                    print("Consider updating the database to remove the 'id' column if not needed elsewhere.")
+                    print("No 'id' column found - composite primary key structure is correct.")
                 
                 # Check primary key structure
                 result = conn.execute(text("SHOW KEYS FROM order_items WHERE Key_name = 'PRIMARY'"))

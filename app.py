@@ -437,8 +437,6 @@ def get_products():
         print(f"Error fetching products: {str(e)}")
         return jsonify({'success': False, 'message': f'Error fetching products: {str(e)}'})
 
-# ... keep existing code (all other product, message, cart, order routes)
-
 @app.route('/api/products/<product_id>', methods=['GET'])
 def get_product(product_id):
     """Get a specific product by ID"""

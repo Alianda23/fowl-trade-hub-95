@@ -1,8 +1,15 @@
+
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Users, Package, ShoppingCart, ArrowLeft, User, BarChart3, FileText } from "lucide-react";
+import { Users, Package, ShoppingCart, ArrowLeft, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+
+interface DashboardStats {
+  users: number;
+  products: number;
+  orders: number;
+}
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -10,6 +17,11 @@ const AdminDashboard = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [adminEmail, setAdminEmail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats>({
+    users: 0,
+    products: 0,
+    orders: 0
+  });
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -34,6 +46,9 @@ const AdminDashboard = () => {
           if (data.isAuthenticated) {
             setIsAuthenticated(true);
             setAdminEmail(storedEmail);
+            
+            // Fetch dashboard stats
+            await fetchDashboardStats();
           } else {
             // If backend says not authenticated, clear localStorage and redirect to login
             localStorage.removeItem('isAdminAuthenticated');
@@ -56,6 +71,29 @@ const AdminDashboard = () => {
 
     checkAuth();
   }, [navigate]);
+
+  const fetchDashboardStats = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/admin/dashboard-stats', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      });
+      
+      const data = await response.json();
+      console.log("Dashboard stats response:", data);
+      
+      if (data.success) {
+        setStats(data.stats);
+      } else {
+        console.error("Error fetching dashboard stats:", data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -142,7 +180,7 @@ const AdminDashboard = () => {
               </div>
               <div>
                 <h3 className="text-lg font-medium text-gray-600">Total Users</h3>
-                <p className="text-2xl font-bold">1,250</p>
+                <p className="text-2xl font-bold">{stats.users}</p>
               </div>
             </div>
           </div>
@@ -154,7 +192,7 @@ const AdminDashboard = () => {
               </div>
               <div>
                 <h3 className="text-lg font-medium text-gray-600">Total Products</h3>
-                <p className="text-2xl font-bold">456</p>
+                <p className="text-2xl font-bold">{stats.products}</p>
               </div>
             </div>
           </div>
@@ -166,14 +204,14 @@ const AdminDashboard = () => {
               </div>
               <div>
                 <h3 className="text-lg font-medium text-gray-600">Total Orders</h3>
-                <p className="text-2xl font-bold">342</p>
+                <p className="text-2xl font-bold">{stats.orders}</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white rounded-lg border p-6">
             <div className="flex items-center gap-4 mb-4">
               <div className="bg-blue-100 p-3 rounded-full">
@@ -244,32 +282,6 @@ const AdminDashboard = () => {
             >
               Generate Reports
             </Button>
-          </div>
-
-          <div className="bg-white rounded-lg border p-6 md:col-span-2">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="bg-orange-100 p-3 rounded-full">
-                <BarChart3 className="h-6 w-6 text-orange-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold">Recent Activity</h3>
-                <p className="text-gray-600">Latest platform activities</p>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm">New seller registration: Poultry Farm Co.</span>
-                <span className="text-xs text-gray-500">2 hours ago</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm">Product reported: Day-old Chicks</span>
-                <span className="text-xs text-gray-500">5 hours ago</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm">Large order processed: KShs 25,000</span>
-                <span className="text-xs text-gray-500">1 day ago</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>

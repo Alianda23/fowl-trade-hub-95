@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { products as sampleProducts } from "@/data/products";
@@ -70,15 +71,24 @@ const ProductDetails = () => {
     ? `http://localhost:5000${product.image}` 
     : product.image;
   
-  const videoUrl = product.video?.startsWith('/static') 
-    ? `http://localhost:5000${product.video}` 
-    : product.video;
+  // Fix video URL - check both 'video' and 'videoUrl' properties
+  const videoUrl = (product.video || product.videoUrl)?.startsWith('/static') 
+    ? `http://localhost:5000${product.video || product.videoUrl}` 
+    : product.video || product.videoUrl;
 
   const renderMedia = () => {
     const hasImage = product.image && product.image.trim() !== '';
-    const hasVideo = product.video && product.video.trim() !== '';
+    const hasVideo = (product.video || product.videoUrl) && (product.video || product.videoUrl).trim() !== '';
     
-    console.log('ProductDetails media debug:', { hasImage, hasVideo, mediaType: product.mediaType, image: product.image, video: product.video });
+    console.log('ProductDetails media debug:', { 
+      hasImage, 
+      hasVideo, 
+      mediaType: product.mediaType, 
+      image: product.image, 
+      video: product.video,
+      videoUrl: product.videoUrl,
+      finalVideoUrl: videoUrl
+    });
 
     // Show video if user clicked to show it, or if it's video-only
     if (hasVideo && (showVideo || product.mediaType === 'video')) {

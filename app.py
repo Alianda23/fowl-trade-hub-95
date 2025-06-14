@@ -15,7 +15,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/kukuhub
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'your_secret_key'  # Change this to a secure key in production
 
-# Configure upload folder for product images
+# Configure upload folder for product images and videos
 UPLOAD_FOLDER = 'static/uploads'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
@@ -462,6 +462,8 @@ def get_products():
                 'stock': product.stock,
                 'category': product.category,
                 'image': product.image_url,
+                'video': product.video_url,  # Add video URL
+                'videoUrl': product.video_url,  # Also add as videoUrl for compatibility
                 'sellerId': str(product.seller_id),
                 'sellerName': seller_name,
                 'createdAt': product.created_at.isoformat()
@@ -497,6 +499,8 @@ def get_product(product_id):
             'stock': product.stock,
             'category': product.category,
             'image': product.image_url,
+            'video': product.video_url,  # Add video URL
+            'videoUrl': product.video_url,  # Also add as videoUrl for compatibility
             'sellerId': str(product.seller_id),
             'sellerName': seller_name,
             'sellerEmail': seller.email if seller else None,
@@ -536,6 +540,8 @@ def get_seller_products():
                 'stock': product.stock,
                 'category': product.category,
                 'image': product.image_url,
+                'video': product.video_url,  # Add video URL
+                'videoUrl': product.video_url,  # Also add as videoUrl for compatibility
                 'sellerId': str(product.seller_id),
                 'sellerName': auth_data.get('business_name'),
                 'createdAt': product.created_at.isoformat()
@@ -588,6 +594,24 @@ def add_product():
                     # Generate URL
                     image_url = f"/static/uploads/{filename}"
             
+            # Handle video upload
+            video_url = None
+            if 'video' in request.files:
+                video_file = request.files['video']
+                if video_file and video_file.filename != '':
+                    # Generate unique filename for video
+                    video_filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{video_file.filename}"
+                    video_file_path = os.path.join(app.config['UPLOAD_FOLDER'], video_filename)
+                    
+                    # Ensure directory exists
+                    os.makedirs(os.path.dirname(video_file_path), exist_ok=True)
+                    
+                    # Save video file
+                    video_file.save(video_file_path)
+                    
+                    # Generate video URL
+                    video_url = f"/static/uploads/{video_filename}"
+            
             # Create new product
             new_product = Product(
                 name=name,
@@ -596,6 +620,7 @@ def add_product():
                 stock=stock,
                 category=category,
                 image_url=image_url,
+                video_url=video_url,  # Save video URL to database
                 seller_id=seller_id
             )
         else:
@@ -611,6 +636,7 @@ def add_product():
                 stock=int(data['stock']),
                 category=data['category'],
                 image_url=data.get('image'),  # Frontend should upload image first and send URL
+                video_url=data.get('video'),  # Frontend should upload video first and send URL
                 seller_id=seller_id
             )
         
@@ -664,6 +690,8 @@ def update_product(product_id):
             product.category = data['category']
         if 'image' in data and data['image']:
             product.image_url = data['image']
+        if 'video' in data and data['video']:
+            product.video_url = data['video']
             
         product.updated_at = datetime.utcnow()
         db.session.commit()
@@ -748,6 +776,43 @@ def upload_product_image():
     except Exception as e:
         print(f"Error uploading image: {str(e)}")
         return jsonify({'success': False, 'message': f'Error uploading image: {str(e)}'})
+
+@app.route('/api/upload/product-video', methods=['POST'])
+def upload_product_video():
+    """Upload a product video and return the URL"""
+    # Check authentication first
+    auth_check = check_seller_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Seller not authenticated'})
+    
+    if 'video' not in request.files:
+        return jsonify({'success': False, 'message': 'No video file provided'})
+    
+    try:
+        file = request.files['video']
+        if file.filename == '':
+            return jsonify({'success': False, 'message': 'No video selected'})
+        
+        # Generate unique filename
+        filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.filename}"
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        # Save file
+        file.save(file_path)
+        
+        # Generate URL
+        video_url = f"/static/uploads/{filename}"
+        
+        return jsonify({
+            'success': True,
+            'videoUrl': video_url
+        })
+    
+    except Exception as e:
+        print(f"Error uploading video: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error uploading video: {str(e)}'})
 
 # Message Endpoints
 @app.route('/api/messages/send', methods=['POST'])

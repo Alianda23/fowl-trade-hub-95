@@ -441,6 +441,134 @@ def admin_delete_product(product_id):
         print(f"Error deleting product: {str(e)}")
         return jsonify({'success': False, 'message': f'Error deleting product: {str(e)}'})
 
+# Order routes
+@app.route('/api/orders/create', methods=['POST'])
+def create_order():
+    """Create a new order"""
+    data = request.json
+    
+    try:
+        print("=== Creating Order in Database ===")
+        print(f"Order data received: {data}")
+        
+        # Create new order
+        new_order = Order(
+            order_id=data['order_id'],
+            user_id=data['user_id'],
+            total=data['total'],
+            status=data['status']
+        )
+        
+        db.session.add(new_order)
+        db.session.flush()  # Get the order ID
+        
+        print(f"Order created with ID: {new_order.order_id}")
+        
+        # Create order items
+        for item_data in data['items']:
+            order_item = OrderItem(
+                order_id=new_order.order_id,
+                product_id=item_data['product_id'],
+                quantity=item_data['quantity'],
+                price=item_data['price']
+            )
+            db.session.add(order_item)
+            print(f"Added order item: {item_data['name']} x {item_data['quantity']}")
+        
+        db.session.commit()
+        print("Order saved successfully to database")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Order created successfully',
+            'orderId': new_order.order_id
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating order: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error creating order: {str(e)}'})
+
+@app.route('/api/orders', methods=['GET'])
+def get_user_orders():
+    """Get orders for the authenticated user"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'User not authenticated'})
+    
+    try:
+        user_id = session['user_id']
+        print(f"Fetching orders for user: {user_id}")
+        
+        # Get orders for the user
+        orders = Order.query.filter_by(user_id=user_id).order_by(Order.created_at.desc()).all()
+        
+        order_list = []
+        for order in orders:
+            # Get order items
+            order_items = OrderItem.query.filter_by(order_id=order.order_id).all()
+            
+            items = []
+            for item in order_items:
+                # Get product info
+                product = Product.query.get(item.product_id)
+                if product:
+                    items.append({
+                        'product_id': product.product_id,
+                        'name': product.name,
+                        'price': item.price,
+                        'quantity': item.quantity,
+                        'image_url': product.image_url,
+                        'seller_id': product.seller_id
+                    })
+            
+            order_list.append({
+                'order_id': order.order_id,
+                'user_id': order.user_id,
+                'total': order.total,
+                'status': order.status,
+                'created_at': order.created_at.isoformat(),
+                'items': items
+            })
+        
+        print(f"Found {len(order_list)} orders for user {user_id}")
+        
+        return jsonify({
+            'success': True,
+            'orders': order_list
+        })
+    
+    except Exception as e:
+        print(f"Error fetching orders: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error fetching orders: {str(e)}'})
+
+@app.route('/api/orders/update-status/<order_id>', methods=['PUT'])
+def update_order_status(order_id):
+    """Update order status"""
+    data = request.json
+    
+    try:
+        print(f"Updating order {order_id} status to {data['status']}")
+        
+        order = Order.query.get(order_id)
+        if not order:
+            return jsonify({'success': False, 'message': 'Order not found'})
+        
+        order.status = data['status']
+        order.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        print(f"Order {order_id} status updated successfully")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Order status updated successfully'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating order status: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error updating order status: {str(e)}'})
+
 # Product routes
 @app.route('/api/products', methods=['GET'])
 def get_products():

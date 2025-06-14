@@ -21,27 +21,55 @@ def setup_database():
             # Create all tables
             db.create_all()
             
-            # Add video-related columns to existing products table if they don't exist
+            # Add missing columns to existing tables if they don't exist
             try:
                 with db.engine.connect() as conn:
-                    # Check if video_url column exists
+                    # Check and add video-related columns to products table
                     result = conn.execute(text("SHOW COLUMNS FROM products LIKE 'video_url'"))
                     if not result.fetchone():
                         conn.execute(text("ALTER TABLE products ADD COLUMN video_url VARCHAR(255) NULL"))
                         print("Added video_url column to products table")
                     
-                    # Check if media_type column exists
                     result = conn.execute(text("SHOW COLUMNS FROM products LIKE 'media_type'"))
                     if not result.fetchone():
                         conn.execute(text("ALTER TABLE products ADD COLUMN media_type VARCHAR(20) DEFAULT 'image' NOT NULL"))
                         print("Added media_type column to products table")
                     
+                    # Check and add missing columns to orders table
+                    result = conn.execute(text("SHOW COLUMNS FROM orders LIKE 'total'"))
+                    if not result.fetchone():
+                        conn.execute(text("ALTER TABLE orders ADD COLUMN total FLOAT NOT NULL DEFAULT 0.0"))
+                        print("Added total column to orders table")
+                    
+                    result = conn.execute(text("SHOW COLUMNS FROM orders LIKE 'status'"))
+                    if not result.fetchone():
+                        conn.execute(text("ALTER TABLE orders ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'Pending'"))
+                        print("Added status column to orders table")
+                    
+                    result = conn.execute(text("SHOW COLUMNS FROM orders LIKE 'updated_at'"))
+                    if not result.fetchone():
+                        conn.execute(text("ALTER TABLE orders ADD COLUMN updated_at DATETIME NULL"))
+                        print("Added updated_at column to orders table")
+                    
+                    # Check and add missing columns to messages table for replies
+                    result = conn.execute(text("SHOW COLUMNS FROM messages LIKE 'reply'"))
+                    if not result.fetchone():
+                        conn.execute(text("ALTER TABLE messages ADD COLUMN reply TEXT NULL"))
+                        print("Added reply column to messages table")
+                    
+                    result = conn.execute(text("SHOW COLUMNS FROM messages LIKE 'replied_at'"))
+                    if not result.fetchone():
+                        conn.execute(text("ALTER TABLE messages ADD COLUMN replied_at DATETIME NULL"))
+                        print("Added replied_at column to messages table")
+                    
                     conn.commit()
+                    print("Database schema updated successfully!")
+                    
             except Exception as e:
-                print(f"Note: Could not add video columns (they may already exist): {str(e)}")
+                print(f"Note: Could not add missing columns (they may already exist): {str(e)}")
             
             print("Database setup completed successfully!")
-            print("Created tables:")
+            print("Created/verified tables:")
             for table in db.metadata.tables.keys():
                 print(f"- {table}")
                 

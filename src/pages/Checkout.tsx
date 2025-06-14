@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -27,6 +28,11 @@ const Checkout = () => {
   const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 
   const createOrder = async () => {
+    console.log("=== Creating Order ===");
+    console.log("Cart items:", cart);
+    console.log("Cart total:", cartTotal);
+    console.log("User ID:", userId);
+    
     // Create a new order from cart items
     const newOrder: Order = {
       id: uuidv4(),
@@ -44,8 +50,12 @@ const Checkout = () => {
       userId: userId || undefined
     };
 
+    console.log("New order created:", newOrder);
+
     // Add to orders context (which will handle database saving)
     await addOrder(newOrder);
+    
+    console.log("Order added to context, clearing cart");
     
     // Clear cart
     clearCart();
@@ -98,17 +108,29 @@ const Checkout = () => {
         
         // In a production app, you would poll the server to check payment status
         // For simplicity, we're simulating a successful payment after a delay
-        setTimeout(() => {
+        setTimeout(async () => {
+          console.log("=== Payment Successful - Creating Order ===");
+          
           // Create the order
-          const newOrder = createOrder();
-          
-          toast({
-            title: "Payment Successful",
-            description: "Your order has been placed successfully!",
-          });
-          
-          // Redirect to homepage after successful payment
-          setTimeout(() => navigate('/'), 2000);
+          try {
+            const newOrder = await createOrder();
+            console.log("Order created successfully:", newOrder);
+            
+            toast({
+              title: "Payment Successful",
+              description: "Your order has been placed successfully!",
+            });
+            
+            // Redirect to homepage after successful payment
+            setTimeout(() => navigate('/'), 2000);
+          } catch (orderError) {
+            console.error("Error creating order:", orderError);
+            toast({
+              title: "Order Creation Failed",
+              description: "Payment was successful but there was an issue creating your order. Please contact support.",
+              variant: "destructive",
+            });
+          }
         }, 5000);
       } else {
         // Check if it's a server configuration error

@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Users, Package, ShoppingCart, ArrowLeft, User } from "lucide-react";
+import { Users, Package, ShoppingCart, ArrowLeft, User, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 

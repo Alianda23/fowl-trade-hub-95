@@ -82,7 +82,7 @@ def login():
 def check_auth():
     if 'user_id' in session:
         user_id = session['user_id']
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)  # Using modern SQLAlchemy method
         
         if user:
             return jsonify({
@@ -161,7 +161,7 @@ def seller_login():
 def seller_auth_check():
     if 'seller_id' in session:
         seller_id = session['seller_id']
-        seller = SellerProfile.query.get(seller_id)
+        seller = db.session.get(SellerProfile, seller_id)  # Using modern SQLAlchemy method
         
         if seller:
             return jsonify({
@@ -336,7 +336,7 @@ def admin_get_orders():
         
         for order in orders:
             # Get user info
-            user = User.query.get(order.user_id)
+            user = db.session.get(User, order.user_id)  # Using modern SQLAlchemy method
             user_name = user.username if user else "Unknown User"
             user_email = user.email if user else "Unknown Email"
             
@@ -345,7 +345,7 @@ def admin_get_orders():
             items = []
             
             for item in order_items:
-                product = Product.query.get(item.product_id)
+                product = db.session.get(Product, item.product_id)  # Using modern SQLAlchemy method
                 if product:
                     items.append({
                         'id': str(product.product_id),
@@ -385,7 +385,7 @@ def update_admin_profile():
     
     try:
         admin_id = auth_data.get('admin_id')
-        admin = AdminProfile.query.get(admin_id)
+        admin = db.session.get(AdminProfile, admin_id)  # Using modern SQLAlchemy method
         
         if not admin:
             return jsonify({'success': False, 'message': 'Admin not found'})
@@ -423,10 +423,15 @@ def admin_delete_product(product_id):
         return jsonify({'success': False, 'message': 'Admin not authenticated'})
     
     try:
-        product = Product.query.get(product_id)
+        product = db.session.get(Product, product_id)  # Using modern SQLAlchemy method
         
         if not product:
             return jsonify({'success': False, 'message': 'Product not found'})
+        
+        # Check if product has related order items - handle the missing 'id' column issue
+        related_order_items = OrderItem.query.filter_by(product_id=product_id).all()
+        if related_order_items:
+            return jsonify({'success': False, 'message': 'Cannot delete product with existing orders'})
         
         db.session.delete(product)
         db.session.commit()
@@ -451,7 +456,7 @@ def get_products():
         
         for product in products:
             # Get seller info
-            seller = SellerProfile.query.get(product.seller_id)
+            seller = db.session.get(SellerProfile, product.seller_id)  # Using modern SQLAlchemy method
             seller_name = seller.business_name if seller else "Unknown Seller"
             
             product_list.append({
@@ -462,6 +467,8 @@ def get_products():
                 'stock': product.stock,
                 'category': product.category,
                 'image': product.image_url,
+                'video': product.video_url,
+                'mediaType': product.media_type,
                 'sellerId': str(product.seller_id),
                 'sellerName': seller_name,
                 'createdAt': product.created_at.isoformat()
@@ -480,13 +487,13 @@ def get_products():
 def get_product(product_id):
     """Get a specific product by ID"""
     try:
-        product = Product.query.get(product_id)
+        product = db.session.get(Product, product_id)  # Using modern SQLAlchemy method
         
         if not product:
             return jsonify({'success': False, 'message': 'Product not found'})
         
         # Get seller info
-        seller = SellerProfile.query.get(product.seller_id)
+        seller = db.session.get(SellerProfile, product.seller_id)  # Using modern SQLAlchemy method
         seller_name = seller.business_name if seller else "Unknown Seller"
         
         product_data = {
@@ -497,6 +504,8 @@ def get_product(product_id):
             'stock': product.stock,
             'category': product.category,
             'image': product.image_url,
+            'video': product.video_url,
+            'mediaType': product.media_type,
             'sellerId': str(product.seller_id),
             'sellerName': seller_name,
             'sellerEmail': seller.email if seller else None,
@@ -536,6 +545,8 @@ def get_seller_products():
                 'stock': product.stock,
                 'category': product.category,
                 'image': product.image_url,
+                'video': product.video_url,
+                'mediaType': product.media_type,
                 'sellerId': str(product.seller_id),
                 'sellerName': auth_data.get('business_name'),
                 'createdAt': product.created_at.isoformat()
@@ -640,7 +651,7 @@ def update_product(product_id):
     
     try:
         seller_id = auth_data.get('seller_id')
-        product = Product.query.get(product_id)
+        product = db.session.get(Product, product_id)  # Using modern SQLAlchemy method
         
         if not product:
             return jsonify({'success': False, 'message': 'Product not found'})
@@ -690,7 +701,7 @@ def delete_product(product_id):
     
     try:
         seller_id = auth_data.get('seller_id')
-        product = Product.query.get(product_id)
+        product = db.session.get(Product, product_id)  # Using modern SQLAlchemy method
         
         if not product:
             return jsonify({'success': False, 'message': 'Product not found'})
@@ -733,6 +744,9 @@ def upload_product_image():
         # Generate unique filename
         filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.filename}"
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         
         # Save file
         file.save(file_path)
@@ -925,9 +939,9 @@ def get_cart():
         cart = []
         
         for item in cart_items:
-            product = Product.query.get(item.product_id)
+            product = db.session.get(Product, item.product_id)  # Using modern SQLAlchemy method
             if product:
-                seller = SellerProfile.query.get(product.seller_id)
+                seller = SellerProfile.query.get(product.seller_id)  # Using modern SQLAlchemy method
                 
                 cart.append({
                     'id': str(product.product_id),
@@ -935,6 +949,8 @@ def get_cart():
                     'description': product.description,
                     'price': product.price,
                     'image': product.image_url,
+                    'video': product.video_url,
+                    'mediaType': product.media_type,
                     'quantity': item.quantity,
                     'sellerId': str(product.seller_id),
                     'sellerName': seller.business_name if seller else "Unknown",
@@ -1075,14 +1091,16 @@ def get_user_orders():
             items = []
             
             for item in order_items:
-                product = Product.query.get(item.product_id)
+                product = db.session.get(Product, item.product_id)  # Using modern SQLAlchemy method
                 if product:
                     items.append({
                         'id': str(product.product_id),
                         'name': product.name,
                         'price': item.price,
                         'quantity': item.quantity,
-                        'image': product.image_url
+                        'image': product.image_url,
+                        'video': product.video_url,
+                        'mediaType': product.media_type
                     })
             
             order_list.append({

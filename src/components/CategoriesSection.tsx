@@ -5,22 +5,22 @@ const categories = [
   {
     title: "Live Poultry",
     description: "Browse quality live poultry from verified sellers",
-    image: "/placeholder.svg"
+    image: "/livepoultry.jpeg"
   },
   {
     title: "Poultry Products",
     description: "Fresh eggs, meat, and processed products",
-    image: "/placeholder.svg"
+    image: "/products.jpeg"
   },
   {
     title: "Feeds & Supplements",
     description: "High-quality feeds and nutritional supplements",
-    image: "/placeholder.svg"
+    image: "/poultryfeed.jpeg"
   },
   {
     title: "Equipment & Supplies",
     description: "Essential farming equipment and supplies",
-    image: "/placeholder.svg"
+    image: "/equipments.jpeg"
   }
 ];
 

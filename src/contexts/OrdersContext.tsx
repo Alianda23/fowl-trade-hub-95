@@ -58,17 +58,17 @@ export const OrdersProvider = ({ children }: { children: ReactNode }) => {
         const data = await response.json();
         if (data.success && data.orders) {
           setOrders(data.orders.map((order: any) => ({
-            id: order.order_id,
-            date: order.created_at,
+            id: order.order_id || order.id,
+            date: order.created_at || order.date,
             total: order.total,
             status: order.status,
             items: order.items.map((item: any) => ({
-              id: String(item.product_id),
+              id: String(item.id),
               name: item.name,
               price: item.price,
               quantity: item.quantity,
-              image: item.image_url || '',
-              sellerId: String(item.seller_id)
+              image: item.image || item.image_url || '',
+              sellerId: String(item.sellerId || item.seller_id || '')
             })),
             userId: order.user_id
           })));
@@ -85,44 +85,8 @@ export const OrdersProvider = ({ children }: { children: ReactNode }) => {
     // Add to local state immediately for better UX
     setOrders((prevOrders) => [order, ...prevOrders]);
     
-    // If authenticated, try to save to database
-    if (isAuthenticated) {
-      try {
-        // Format order data for backend
-        const orderData = {
-          order_id: order.id,
-          user_id: userId,
-          total: order.total,
-          status: order.status,
-          items: order.items.map(item => ({
-            product_id: item.id,
-            quantity: item.quantity,
-            price: item.price,
-            name: item.name,
-            image_url: item.image
-          }))
-        };
-        
-        const response = await fetch('http://localhost:5000/api/orders/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(orderData),
-          credentials: 'include'
-        });
-        
-        const data = await response.json();
-        
-        if (!data.success) {
-          console.error("Failed to save order to database:", data.message);
-        } else {
-          console.log("Order saved successfully:", data.orderId);
-        }
-      } catch (error) {
-        console.error("Error saving order to database:", error);
-      }
-    }
+    // Note: The order should already be saved to database by the time this is called
+    // This function is now mainly for updating the local state
   };
 
   const updateOrderStatus = (orderId: string, status: Order["status"]) => {

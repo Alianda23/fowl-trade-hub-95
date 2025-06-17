@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -27,30 +28,70 @@ const Checkout = () => {
   const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 
   const createOrder = async () => {
-    // Create a new order from cart items
-    const newOrder: Order = {
-      id: uuidv4(),
-      items: cart.map(item => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        image: item.image,
-        sellerId: item.sellerId
-      })),
-      status: "Pending",
-      date: new Date().toISOString(),
-      total: cartTotal,
-      userId: userId || undefined
-    };
+    try {
+      // Create order data for backend
+      const orderData = {
+        order_id: uuidv4(),
+        user_id: isAuthenticated ? Number(userId) : null,
+        total: cartTotal,
+        status: "Pending",
+        items: cart.map(item => ({
+          product_id: parseInt(item.id), // Convert to number
+          quantity: item.quantity,
+          price: item.price,
+          name: item.name,
+          image_url: item.image
+        }))
+      };
 
-    // Add to orders context (which will handle database saving)
-    await addOrder(newOrder);
-    
-    // Clear cart
-    clearCart();
-    
-    return newOrder;
+      console.log("Sending order data to backend:", orderData);
+
+      // Send to backend first
+      const response = await fetch('http://localhost:5000/api/orders/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+        credentials: 'include'
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log("Order saved to backend successfully");
+        
+        // Create order for frontend context
+        const frontendOrder: Order = {
+          id: orderData.order_id,
+          items: cart.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            image: item.image,
+            sellerId: item.sellerId
+          })),
+          status: "Pending",
+          date: new Date().toISOString(),
+          total: cartTotal,
+          userId: isAuthenticated ? Number(userId) : undefined
+        };
+
+        // Add to orders context
+        await addOrder(frontendOrder);
+        
+        // Clear cart
+        clearCart();
+        
+        return frontendOrder;
+      } else {
+        throw new Error(result.message || 'Failed to create order');
+      }
+    } catch (error) {
+      console.error("Error creating order:", error);
+      throw error;
+    }
   };
 
   const handleMpesaPayment = async (e: React.FormEvent) => {
@@ -98,17 +139,26 @@ const Checkout = () => {
         
         // In a production app, you would poll the server to check payment status
         // For simplicity, we're simulating a successful payment after a delay
-        setTimeout(() => {
-          // Create the order
-          const newOrder = createOrder();
-          
-          toast({
-            title: "Payment Successful",
-            description: "Your order has been placed successfully!",
-          });
-          
-          // Redirect to homepage after successful payment
-          setTimeout(() => navigate('/'), 2000);
+        setTimeout(async () => {
+          try {
+            // Create the order
+            await createOrder();
+            
+            toast({
+              title: "Payment Successful",
+              description: "Your order has been placed successfully!",
+            });
+            
+            // Redirect to homepage after successful payment
+            setTimeout(() => navigate('/'), 2000);
+          } catch (orderError) {
+            console.error("Order creation failed:", orderError);
+            toast({
+              title: "Order Creation Failed",
+              description: "Payment successful but order creation failed. Please contact support.",
+              variant: "destructive",
+            });
+          }
         }, 5000);
       } else {
         // Check if it's a server configuration error

@@ -1023,7 +1023,7 @@ def clear_cart():
         print(f"Error clearing cart: {str(e)}")
         return jsonify({'success': False, 'message': f'Error clearing cart: {str(e)}'})
 
-# Order endpoints
+# Fixed Order endpoints
 @app.route('/api/orders/create', methods=['POST'])
 def create_order():
     """Create a new order"""
@@ -1034,27 +1034,58 @@ def create_order():
         data = request.json
         user_id = session['user_id']
         
-        # Generate UUID for order ID
-        order_id = str(uuid.uuid4())
+        print(f"Received order data: {data}")
+        
+        # Verify user exists
+        user = db.session.get(User, user_id)
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'})
+        
+        # Extract order details
+        order_id = data.get('order_id')
+        if not order_id:
+            order_id = str(uuid.uuid4())
+        
+        total = float(data.get('total', 0))
+        status = data.get('status', 'Pending')
+        items = data.get('items', [])
+        
+        if not items:
+            return jsonify({'success': False, 'message': 'No items in order'})
         
         # Create new order
         new_order = Order(
             order_id=order_id,
             user_id=user_id,
-            total=float(data['totalAmount']),
-            status='Pending'
+            total=total,
+            status=status
         )
         
         db.session.add(new_order)
         db.session.flush()  # Get the order ID
         
         # Add order items
-        for item in data['items']:
+        for item in items:
+            # Handle both string and int product_id
+            product_id = item.get('product_id') or item.get('id')
+            if isinstance(product_id, str) and not product_id.isdigit():
+                # Skip non-numeric product IDs (like 'broilers')
+                print(f"Skipping invalid product_id: {product_id}")
+                continue
+                
+            product_id = int(product_id)
+            
+            # Verify product exists
+            product = db.session.get(Product, product_id)
+            if not product:
+                print(f"Product not found: {product_id}")
+                continue
+            
             order_item = OrderItem(
                 order_id=new_order.order_id,
-                product_id=int(item['id']),
-                quantity=item['quantity'],
-                price=float(item['price'])
+                product_id=product_id,
+                quantity=int(item.get('quantity', 1)),
+                price=float(item.get('price', 0))
             )
             db.session.add(order_item)
         
@@ -1062,6 +1093,8 @@ def create_order():
         CartItem.query.filter_by(user_id=user_id).delete()
         
         db.session.commit()
+        
+        print(f"Order created successfully: {new_order.order_id}")
         
         return jsonify({
             'success': True,
@@ -1072,6 +1105,8 @@ def create_order():
     except Exception as e:
         db.session.rollback()
         print(f"Error creating order: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
         return jsonify({'success': False, 'message': f'Error creating order: {str(e)}'})
 
 @app.route('/api/orders', methods=['GET'])
@@ -1099,16 +1134,18 @@ def get_user_orders():
                         'price': item.price,
                         'quantity': item.quantity,
                         'image': product.image_url,
-                        'video': product.video_url,
-                        'mediaType': product.media_type
+                        'sellerId': str(product.seller_id)
                     })
             
             order_list.append({
-                'id': str(order.order_id),
+                'id': order.order_id,
+                'order_id': order.order_id,
+                'user_id': order.user_id,
                 'items': items,
-                'totalAmount': order.total,
+                'total': order.total,
                 'status': order.status,
-                'createdAt': order.created_at.isoformat()
+                'date': order.created_at.isoformat(),
+                'created_at': order.created_at.isoformat()
             })
         
         return jsonify({
@@ -1119,6 +1156,34 @@ def get_user_orders():
     except Exception as e:
         print(f"Error fetching orders: {str(e)}")
         return jsonify({'success': False, 'message': f'Error fetching orders: {str(e)}'})
+
+@app.route('/api/orders/update-status/<order_id>', methods=['PUT'])
+def update_order_status(order_id):
+    """Update order status"""
+    try:
+        data = request.json
+        new_status = data.get('status')
+        
+        if not new_status:
+            return jsonify({'success': False, 'message': 'Status is required'})
+        
+        order = Order.query.filter_by(order_id=order_id).first()
+        if not order:
+            return jsonify({'success': False, 'message': 'Order not found'})
+        
+        order.status = new_status
+        order.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Order status updated successfully'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating order status: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error updating order status: {str(e)}'})
 
 # Admin report generation endpoints
 @app.route('/api/admin/reports/users/download', methods=['GET'])

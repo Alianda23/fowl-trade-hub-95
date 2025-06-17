@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -46,6 +45,17 @@ const Checkout = () => {
 
       console.log("Sending order data to backend:", orderData);
 
+      // If user is not authenticated, show login prompt
+      if (!isAuthenticated) {
+        toast({
+          title: "Login Required",
+          description: "Please login to place an order",
+          variant: "destructive",
+        });
+        navigate('/login');
+        return null;
+      }
+
       // Send to backend first
       const response = await fetch('http://localhost:5000/api/orders/create', {
         method: 'POST',
@@ -75,7 +85,7 @@ const Checkout = () => {
           status: "Pending",
           date: new Date().toISOString(),
           total: cartTotal,
-          userId: isAuthenticated ? Number(userId) : undefined
+          userId: Number(userId)
         };
 
         // Add to orders context
@@ -214,6 +224,22 @@ const Checkout = () => {
     <div className="container mx-auto max-w-2xl py-16">
       <h1 className="mb-8 text-3xl font-bold">Checkout</h1>
       
+      {!isAuthenticated && (
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-center">
+            <Info className="mr-2 h-4 w-4 text-amber-500" />
+            <p className="text-amber-800">
+              Please <button 
+                onClick={() => navigate('/login')} 
+                className="underline font-medium"
+              >
+                login
+              </button> to place an order
+            </p>
+          </div>
+        </div>
+      )}
+      
       <div className="mb-8 rounded-lg border p-6">
         <h2 className="mb-4 text-xl font-semibold">Order Summary</h2>
         
@@ -249,7 +275,10 @@ const Checkout = () => {
         
         <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full bg-green-600 hover:bg-green-700">
+            <Button 
+              className="w-full bg-green-600 hover:bg-green-700"
+              disabled={!isAuthenticated}
+            >
               Pay with M-Pesa
             </Button>
           </DialogTrigger>

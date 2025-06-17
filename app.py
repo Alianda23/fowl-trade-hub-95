@@ -1027,7 +1027,11 @@ def clear_cart():
 @app.route('/api/orders/create', methods=['POST'])
 def create_order():
     """Create a new order"""
+    print(f"Session data: {session}")
+    print(f"Request data: {request.json}")
+    
     if 'user_id' not in session:
+        print("No user_id in session")
         return jsonify({'success': False, 'message': 'User not authenticated'})
     
     try:
@@ -1039,6 +1043,7 @@ def create_order():
         # Verify user exists
         user = db.session.get(User, user_id)
         if not user:
+            print(f"User not found: {user_id}")
             return jsonify({'success': False, 'message': 'User not found'})
         
         # Extract order details
@@ -1052,6 +1057,8 @@ def create_order():
         
         if not items:
             return jsonify({'success': False, 'message': 'No items in order'})
+        
+        print(f"Creating order with ID: {order_id}")
         
         # Create new order
         new_order = Order(
@@ -1080,6 +1087,8 @@ def create_order():
             if not product:
                 print(f"Product not found: {product_id}")
                 continue
+            
+            print(f"Adding order item: Product {product_id}, Quantity {item.get('quantity', 1)}")
             
             order_item = OrderItem(
                 order_id=new_order.order_id,

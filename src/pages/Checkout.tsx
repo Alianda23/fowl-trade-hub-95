@@ -26,100 +26,31 @@ const Checkout = () => {
   // Calculate total from cart
   const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 
-  // Check if user is authenticated before proceeding
-  useEffect(() => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Please Login",
-        description: "You need to be logged in to place an order",
-        variant: "destructive",
-      });
-      navigate('/login');
-    }
-  }, [isAuthenticated, navigate, toast]);
-
-  const saveOrderToDatabase = async (orderData: any) => {
-    try {
-      console.log('Saving order to database:', orderData);
-      
-      const response = await fetch('http://localhost:5000/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(orderData),
-        credentials: 'include'
-      });
-
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to save order');
-      }
-      
-      console.log('Order saved successfully:', result);
-      return result;
-    } catch (error) {
-      console.error('Error saving order to database:', error);
-      throw error;
-    }
-  };
-
   const createOrder = async () => {
-    // Validate user is authenticated and has valid userId
-    if (!isAuthenticated || !userId) {
-      throw new Error('User not authenticated');
-    }
-
-    const orderId = uuidv4();
-    
-    // Create order data for database - ensure userId is a number
-    const orderData = {
-      order_id: orderId,
-      user_id: Number(userId), // Ensure it's a number
-      total: cartTotal,
-      status: 'Pending',
+    // Create a new order from cart items
+    const newOrder: Order = {
+      id: uuidv4(),
       items: cart.map(item => ({
-        product_id: item.id,
+        id: item.id,
+        name: item.name,
+        price: item.price,
         quantity: item.quantity,
-        price: item.price
-      }))
+        image: item.image,
+        sellerId: item.sellerId
+      })),
+      status: "Pending",
+      date: new Date().toISOString(),
+      total: cartTotal,
+      userId: userId || undefined
     };
 
-    console.log('Creating order with data:', orderData);
-
-    try {
-      // Save to database first
-      await saveOrderToDatabase(orderData);
-      
-      // Create order for local context
-      const newOrder: Order = {
-        id: orderId,
-        items: cart.map(item => ({
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          image: item.image,
-          sellerId: item.sellerId
-        })),
-        status: "Pending",
-        date: new Date().toISOString(),
-        total: cartTotal,
-        userId: Number(userId)
-      };
-
-      // Add to orders context
-      await addOrder(newOrder);
-      
-      // Clear cart
-      clearCart();
-      
-      return newOrder;
-    } catch (error) {
-      console.error('Error creating order:', error);
-      throw error;
-    }
+    // Add to orders context (which will handle database saving)
+    await addOrder(newOrder);
+    
+    // Clear cart
+    clearCart();
+    
+    return newOrder;
   };
 
   const handleMpesaPayment = async (e: React.FormEvent) => {
@@ -140,7 +71,7 @@ const Checkout = () => {
     setIsProcessing(true);
     
     try {
-      const amount = cartTotal;
+      const amount = cartTotal; // Use actual cart total
       
       toast({
         title: "Processing",
@@ -155,36 +86,32 @@ const Checkout = () => {
           description: "Please check your phone for the M-Pesa payment prompt and enter your PIN",
         });
         
+        // Close dialog and reset state
         setPaymentDialogOpen(false);
         setPaymentError("");
         
+        // Show processing notification
         toast({
           title: "Processing Payment",
           description: "Please wait while we confirm your payment...",
         });
         
-        // Simulate payment processing and create order
-        setTimeout(async () => {
-          try {
-            // Create the order and save to database
-            await createOrder();
-            
-            toast({
-              title: "Payment Successful",
-              description: "Your order has been placed successfully!",
-            });
-            
-            setTimeout(() => navigate('/'), 2000);
-          } catch (error) {
-            console.error('Error creating order after payment:', error);
-            toast({
-              title: "Order Creation Failed",
-              description: "Payment was successful but there was an issue creating your order. Please contact support.",
-              variant: "destructive",
-            });
-          }
+        // In a production app, you would poll the server to check payment status
+        // For simplicity, we're simulating a successful payment after a delay
+        setTimeout(() => {
+          // Create the order
+          const newOrder = createOrder();
+          
+          toast({
+            title: "Payment Successful",
+            description: "Your order has been placed successfully!",
+          });
+          
+          // Redirect to homepage after successful payment
+          setTimeout(() => navigate('/'), 2000);
         }, 5000);
       } else {
+        // Check if it's a server configuration error
         if (result.message && (
             result.message.includes("server configuration") || 
             result.message.includes("callback") ||
@@ -193,6 +120,7 @@ const Checkout = () => {
           setIsServerConfigError(true);
         }
         
+        // If payment fails, show error but keep dialog open so user can try again
         setPaymentError(result.message || "Failed to initiate payment. Please try again.");
         
         toast({
@@ -228,16 +156,6 @@ const Checkout = () => {
         >
           Continue Shopping
         </Button>
-      </div>
-    );
-  }
-
-  // Show loading if not authenticated
-  if (!isAuthenticated) {
-    return (
-      <div className="container mx-auto max-w-2xl py-16 text-center">
-        <Loader2 className="mx-auto h-8 w-8 animate-spin" />
-        <p className="mt-4">Checking authentication...</p>
       </div>
     );
   }

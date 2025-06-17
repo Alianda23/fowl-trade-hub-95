@@ -320,119 +320,6 @@ def admin_get_users():
         print(f"Error fetching users: {str(e)}")
         return jsonify({'success': False, 'message': f'Error fetching users: {str(e)}'})
 
-# Orders API endpoints
-@app.route('/api/orders', methods=['POST'])
-def create_order():
-    try:
-        data = request.get_json()
-        print(f"Received order data: {data}")
-        
-        # Validate required fields
-        if not data or 'order_id' not in data or 'user_id' not in data:
-            return jsonify({
-                'success': False, 
-                'message': 'Missing required fields: order_id, user_id'
-            }), 400
-        
-        # Check if user exists
-        user = User.query.get(data['user_id'])
-        if not user:
-            return jsonify({
-                'success': False, 
-                'message': 'User not found'
-            }), 404
-        
-        # Create new order
-        new_order = Order(
-            order_id=data['order_id'],
-            user_id=data['user_id'],
-            total=data.get('total', 0),
-            status=data.get('status', 'Pending')
-        )
-        
-        db.session.add(new_order)
-        
-        # Add order items
-        if 'items' in data:
-            for item_data in data['items']:
-                # Validate product exists
-                product = Product.query.get(item_data['product_id'])
-                if not product:
-                    return jsonify({
-                        'success': False, 
-                        'message': f'Product with ID {item_data["product_id"]} not found'
-                    }), 404
-                
-                order_item = OrderItem(
-                    order_id=data['order_id'],
-                    product_id=item_data['product_id'],
-                    quantity=item_data['quantity'],
-                    price=item_data['price']
-                )
-                db.session.add(order_item)
-        
-        db.session.commit()
-        
-        print(f"Order created successfully: {new_order.order_id}")
-        
-        return jsonify({
-            'success': True,
-            'message': 'Order created successfully',
-            'order_id': new_order.order_id
-        }), 201
-        
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error creating order: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': f'Error creating order: {str(e)}'
-        }), 500
-
-@app.route('/api/orders', methods=['GET'])
-def get_orders():
-    try:
-        # Get all orders with their items
-        orders = db.session.query(Order).all()
-        
-        orders_data = []
-        for order in orders:
-            order_data = {
-                'order_id': order.order_id,
-                'user_id': order.user_id,
-                'total': order.total,
-                'status': order.status,
-                'created_at': order.created_at.isoformat() if order.created_at else None,
-                'items': []
-            }
-            
-            # Get order items
-            items = OrderItem.query.filter_by(order_id=order.order_id).all()
-            for item in items:
-                product = Product.query.get(item.product_id)
-                item_data = {
-                    'product_id': item.product_id,
-                    'product_name': product.name if product else 'Unknown Product',
-                    'quantity': item.quantity,
-                    'price': item.price,
-                    'seller_id': product.seller_id if product else None
-                }
-                order_data['items'].append(item_data)
-            
-            orders_data.append(order_data)
-        
-        return jsonify({
-            'success': True,
-            'orders': orders_data
-        }), 200
-        
-    except Exception as e:
-        print(f"Error fetching orders: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': f'Error fetching orders: {str(e)}'
-        }), 500
-
 @app.route('/api/admin/orders', methods=['GET'])
 def admin_get_orders():
     """Get all orders for admin"""
@@ -485,6 +372,994 @@ def admin_get_orders():
     except Exception as e:
         print(f"Error fetching orders: {str(e)}")
         return jsonify({'success': False, 'message': f'Error fetching orders: {str(e)}'})
+
+@app.route('/api/admin/update-profile', methods=['PUT'])
+def update_admin_profile():
+    """Update admin profile information"""
+    # First check if admin is authenticated
+    auth_check = check_admin_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Admin not authenticated'})
+    
+    try:
+        admin_id = auth_data.get('admin_id')
+        admin = db.session.get(AdminProfile, admin_id)  # Using modern SQLAlchemy method
+        
+        if not admin:
+            return jsonify({'success': False, 'message': 'Admin not found'})
+        
+        data = request.json
+        
+        # Update fields
+        if 'username' in data:
+            admin.username = data['username']
+        if 'department' in data:
+            admin.department = data['department']
+        if 'phone_number' in data:
+            admin.phone_number = data['phone_number']
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Profile updated successfully'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating admin profile: {str(e)}")
+        return jsonify({'success': False, 'message': f'Update failed: {str(e)}'})
+
+@app.route('/api/admin/products/<product_id>', methods=['DELETE'])
+def admin_delete_product(product_id):
+    """Admin delete a product"""
+    # First check if admin is authenticated
+    auth_check = check_admin_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Admin not authenticated'})
+    
+    try:
+        product = db.session.get(Product, product_id)  # Using modern SQLAlchemy method
+        
+        if not product:
+            return jsonify({'success': False, 'message': 'Product not found'})
+        
+        # Check if product has related order items - handle the missing 'id' column issue
+        related_order_items = OrderItem.query.filter_by(product_id=product_id).all()
+        if related_order_items:
+            return jsonify({'success': False, 'message': 'Cannot delete product with existing orders'})
+        
+        db.session.delete(product)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Product deleted successfully by admin'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting product: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error deleting product: {str(e)}'})
+
+# Product routes
+@app.route('/api/products', methods=['GET'])
+def get_products():
+    """Get all products for public viewing"""
+    try:
+        products = Product.query.all()
+        product_list = []
+        
+        for product in products:
+            # Get seller info
+            seller = db.session.get(SellerProfile, product.seller_id)  # Using modern SQLAlchemy method
+            seller_name = seller.business_name if seller else "Unknown Seller"
+            
+            product_list.append({
+                'id': str(product.product_id),
+                'name': product.name,
+                'description': product.description,
+                'price': product.price,
+                'stock': product.stock,
+                'category': product.category,
+                'image': product.image_url,
+                'video': product.video_url,
+                'mediaType': product.media_type,
+                'sellerId': str(product.seller_id),
+                'sellerName': seller_name,
+                'createdAt': product.created_at.isoformat()
+            })
+        
+        return jsonify({
+            'success': True,
+            'products': product_list
+        })
+    
+    except Exception as e:
+        print(f"Error fetching products: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error fetching products: {str(e)}'})
+
+@app.route('/api/products/<product_id>', methods=['GET'])
+def get_product(product_id):
+    """Get a specific product by ID"""
+    try:
+        product = db.session.get(Product, product_id)  # Using modern SQLAlchemy method
+        
+        if not product:
+            return jsonify({'success': False, 'message': 'Product not found'})
+        
+        # Get seller info
+        seller = db.session.get(SellerProfile, product.seller_id)  # Using modern SQLAlchemy method
+        seller_name = seller.business_name if seller else "Unknown Seller"
+        
+        product_data = {
+            'id': str(product.product_id),
+            'name': product.name,
+            'description': product.description,
+            'price': product.price,
+            'stock': product.stock,
+            'category': product.category,
+            'image': product.image_url,
+            'video': product.video_url,
+            'mediaType': product.media_type,
+            'sellerId': str(product.seller_id),
+            'sellerName': seller_name,
+            'sellerEmail': seller.email if seller else None,
+            'createdAt': product.created_at.isoformat()
+        }
+        
+        return jsonify({
+            'success': True,
+            'product': product_data
+        })
+    
+    except Exception as e:
+        print(f"Error fetching product: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error fetching product: {str(e)}'})
+
+@app.route('/api/seller/products', methods=['GET'])
+def get_seller_products():
+    """Get products for the authenticated seller"""
+    # First check if seller is authenticated
+    auth_check = check_seller_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Seller not authenticated'})
+    
+    try:
+        seller_id = auth_data.get('seller_id')
+        products = Product.query.filter_by(seller_id=seller_id).all()
+        product_list = []
+        
+        for product in products:
+            product_list.append({
+                'id': str(product.product_id),
+                'name': product.name,
+                'description': product.description,
+                'price': product.price,
+                'stock': product.stock,
+                'category': product.category,
+                'image': product.image_url,
+                'video': product.video_url,
+                'mediaType': product.media_type,
+                'sellerId': str(product.seller_id),
+                'sellerName': auth_data.get('business_name'),
+                'createdAt': product.created_at.isoformat()
+            })
+        
+        return jsonify({
+            'success': True,
+            'products': product_list
+        })
+    
+    except Exception as e:
+        print(f"Error fetching seller products: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error fetching products: {str(e)}'})
+
+@app.route('/api/products/create', methods=['POST'])
+def add_product():
+    """Add a new product (seller only)"""
+    # First check if seller is authenticated
+    auth_check = check_seller_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Seller not authenticated'})
+    
+    try:
+        # Check if we have form data (multipart/form-data) or JSON
+        if request.form:
+            name = request.form.get('name')
+            description = request.form.get('description')
+            price = float(request.form.get('price', 0))
+            stock = int(request.form.get('stock', 0))
+            category = request.form.get('category')
+            seller_id = auth_data.get('seller_id')
+            
+            # Handle image upload
+            image_url = None
+            if 'image' in request.files:
+                file = request.files['image']
+                if file and file.filename != '':
+                    # Generate unique filename
+                    filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.filename}"
+                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    
+                    # Ensure directory exists
+                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                    
+                    # Save file
+                    file.save(file_path)
+                    
+                    # Generate URL
+                    image_url = f"/static/uploads/{filename}"
+            
+            # Create new product
+            new_product = Product(
+                name=name,
+                description=description,
+                price=price,
+                stock=stock,
+                category=category,
+                image_url=image_url,
+                seller_id=seller_id
+            )
+        else:
+            # Handle JSON data
+            data = request.json
+            seller_id = auth_data.get('seller_id')
+            
+            # Create new product
+            new_product = Product(
+                name=data['name'],
+                description=data['description'],
+                price=float(data['price']),
+                stock=int(data['stock']),
+                category=data['category'],
+                image_url=data.get('image'),  # Frontend should upload image first and send URL
+                seller_id=seller_id
+            )
+        
+        db.session.add(new_product)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Product added successfully',
+            'productId': new_product.product_id
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error adding product: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error adding product: {str(e)}'})
+
+@app.route('/api/products/<product_id>', methods=['PUT'])
+def update_product(product_id):
+    """Update product details (seller only)"""
+    # First check if seller is authenticated
+    auth_check = check_seller_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Seller not authenticated'})
+    
+    try:
+        seller_id = auth_data.get('seller_id')
+        product = db.session.get(Product, product_id)  # Using modern SQLAlchemy method
+        
+        if not product:
+            return jsonify({'success': False, 'message': 'Product not found'})
+        
+        # Verify product belongs to the seller
+        if product.seller_id != int(seller_id):
+            return jsonify({'success': False, 'message': 'You do not own this product'})
+        
+        data = request.json
+        
+        # Update fields
+        if 'name' in data:
+            product.name = data['name']
+        if 'description' in data:
+            product.description = data['description']
+        if 'price' in data:
+            product.price = float(data['price'])
+        if 'stock' in data:
+            product.stock = int(data['stock'])
+        if 'category' in data:
+            product.category = data['category']
+        if 'image' in data and data['image']:
+            product.image_url = data['image']
+            
+        product.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Product updated successfully',
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating product: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error updating product: {str(e)}'})
+
+@app.route('/api/products/<product_id>', methods=['DELETE'])
+def delete_product(product_id):
+    """Delete a product (seller only)"""
+    # First check if seller is authenticated
+    auth_check = check_seller_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Seller not authenticated'})
+    
+    try:
+        seller_id = auth_data.get('seller_id')
+        product = db.session.get(Product, product_id)  # Using modern SQLAlchemy method
+        
+        if not product:
+            return jsonify({'success': False, 'message': 'Product not found'})
+        
+        # Verify this product belongs to the seller
+        if product.seller_id != int(seller_id):
+            return jsonify({'success': False, 'message': 'You do not own this product'})
+        
+        db.session.delete(product)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Product deleted successfully'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting product: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error deleting product: {str(e)}'})
+
+@app.route('/api/upload/product-image', methods=['POST'])
+def upload_product_image():
+    """Upload a product image and return the URL"""
+    # Check authentication first
+    auth_check = check_seller_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Seller not authenticated'})
+    
+    if 'image' not in request.files:
+        return jsonify({'success': False, 'message': 'No image file provided'})
+    
+    try:
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'success': False, 'message': 'No image selected'})
+        
+        # Generate unique filename
+        filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.filename}"
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+        # Save file
+        file.save(file_path)
+        
+        # Generate URL
+        image_url = f"/static/uploads/{filename}"
+        
+        return jsonify({
+            'success': True,
+            'imageUrl': image_url
+        })
+    
+    except Exception as e:
+        print(f"Error uploading image: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error uploading image: {str(e)}'})
+
+# Message Endpoints
+@app.route('/api/messages/send', methods=['POST'])
+def send_message():
+    """Send a message to a seller"""
+    data = request.json
+    
+    try:
+        # Validate seller exists
+        seller = SellerProfile.query.get(data['sellerId'])
+        if not seller:
+            return jsonify({'success': False, 'message': 'Seller not found'})
+        
+        # Create new message
+        new_message = Message(
+            content=data['content'],
+            user_id=None,  # Anonymous message is okay
+            seller_id=int(data['sellerId']),
+            senderName=data.get('senderName', 'Anonymous'),
+            senderEmail=data.get('senderEmail', 'no-email@example.com'),
+            productName=data.get('productName', 'Unknown Product')
+        )
+        
+        db.session.add(new_message)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Message sent successfully',
+            'messageId': new_message.message_id
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error sending message: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error sending message: {str(e)}'})
+
+@app.route('/api/seller/messages', methods=['GET'])
+def get_seller_messages():
+    """Get messages for the authenticated seller"""
+    if 'seller_id' not in session:
+        return jsonify({'success': False, 'message': 'Seller not authenticated'})
+    
+    try:
+        seller_id = session['seller_id']
+        messages = Message.query.filter_by(seller_id=seller_id).order_by(Message.created_at.desc()).all()
+        message_list = []
+        
+        for msg in messages:
+            message_list.append({
+                'id': str(msg.message_id),
+                'senderName': msg.senderName,
+                'senderEmail': msg.senderEmail,
+                'content': msg.content,
+                'productName': msg.productName,
+                'createdAt': msg.created_at.isoformat(),
+                'reply': msg.reply,
+                'repliedAt': msg.replied_at.isoformat() if msg.replied_at else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'messages': message_list
+        })
+    
+    except Exception as e:
+        print(f"Error fetching messages: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error fetching messages: {str(e)}'})
+
+@app.route('/api/messages/<message_id>/reply', methods=['POST'])
+def reply_to_message(message_id):
+    """Reply to a customer message"""
+    if 'seller_id' not in session:
+        return jsonify({'success': False, 'message': 'Seller not authenticated'})
+    
+    try:
+        data = request.json
+        seller_id = session['seller_id']
+        
+        # Find the message
+        message = Message.query.get(message_id)
+        if not message:
+            return jsonify({'success': False, 'message': 'Message not found'})
+        
+        # Verify this message belongs to the seller
+        if message.seller_id != seller_id:
+            return jsonify({'success': False, 'message': 'Unauthorized'})
+        
+        # Update the message with reply
+        message.reply = data['reply']
+        message.replied_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Reply sent successfully'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error sending reply: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error sending reply: {str(e)}'})
+
+@app.route('/api/user/messages', methods=['GET'])
+def get_user_messages():
+    """Get messages for a user by email"""
+    email = request.args.get('email')
+    if not email:
+        return jsonify({'success': False, 'message': 'Email parameter required'})
+    
+    try:
+        # Find messages sent by this email
+        messages = Message.query.filter_by(senderEmail=email).order_by(Message.created_at.desc()).all()
+        message_list = []
+        
+        for msg in messages:
+            # Get seller info
+            seller = SellerProfile.query.get(msg.seller_id)
+            seller_name = seller.business_name if seller else "Unknown Seller"
+            
+            message_list.append({
+                'id': str(msg.message_id),
+                'productName': msg.productName,
+                'sellerName': seller_name,
+                'content': msg.content,
+                'reply': msg.reply,
+                'createdAt': msg.created_at.isoformat(),
+                'repliedAt': msg.replied_at.isoformat() if msg.replied_at else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'messages': message_list
+        })
+    
+    except Exception as e:
+        print(f"Error fetching user messages: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error fetching user messages: {str(e)}'})
+
+# For testing
+@app.route('/api/test/users', methods=['GET'])
+def test_get_users():
+    """Test endpoint to get users without authentication"""
+    try:
+        users = User.query.all()
+        user_list = []
+        
+        for user in users:
+            user_list.append({
+                'user_id': user.user_id,
+                'username': user.username,
+                'email': user.email,
+                'created_at': user.created_at.isoformat()
+            })
+        
+        return jsonify({
+            'success': True,
+            'users': user_list
+        })
+    
+    except Exception as e:
+        print(f"Error fetching test users: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+
+# Add new routes for cart and orders
+@app.route('/api/cart', methods=['GET'])
+def get_cart():
+    """Get cart items for the authenticated user"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'User not authenticated'})
+    
+    try:
+        user_id = session['user_id']
+        cart_items = CartItem.query.filter_by(user_id=user_id).all()
+        cart = []
+        
+        for item in cart_items:
+            product = db.session.get(Product, item.product_id)  # Using modern SQLAlchemy method
+            if product:
+                seller = SellerProfile.query.get(product.seller_id)  # Using modern SQLAlchemy method
+                
+                cart.append({
+                    'id': str(product.product_id),
+                    'name': product.name,
+                    'description': product.description,
+                    'price': product.price,
+                    'image': product.image_url,
+                    'video': product.video_url,
+                    'mediaType': product.media_type,
+                    'quantity': item.quantity,
+                    'sellerId': str(product.seller_id),
+                    'sellerName': seller.business_name if seller else "Unknown",
+                    'category': product.category
+                })
+        
+        return jsonify({
+            'success': True,
+            'cart': cart
+        })
+    
+    except Exception as e:
+        print(f"Error fetching cart: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+
+@app.route('/api/cart/update', methods=['POST'])
+def update_cart():
+    """Update cart items for the authenticated user"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'User not authenticated'})
+    
+    try:
+        user_id = session['user_id']
+        data = request.json
+        
+        # Clear existing cart items for this user
+        CartItem.query.filter_by(user_id=user_id).delete()
+        
+        # Add new cart items
+        for item in data['items']:
+            cart_item = CartItem(
+                user_id=user_id,
+                product_id=int(item['id']),
+                quantity=item['quantity']
+            )
+            db.session.add(cart_item)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Cart updated successfully'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating cart: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error updating cart: {str(e)}'})
+
+@app.route('/api/cart/clear', methods=['DELETE'])
+def clear_cart():
+    """Clear all cart items for the authenticated user"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'User not authenticated'})
+    
+    try:
+        user_id = session['user_id']
+        
+        # Delete all cart items for this user
+        CartItem.query.filter_by(user_id=user_id).delete()
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Cart cleared successfully'
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error clearing cart: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error clearing cart: {str(e)}'})
+
+# Order endpoints
+@app.route('/api/orders/create', methods=['POST'])
+def create_order():
+    """Create a new order"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'User not authenticated'})
+    
+    try:
+        data = request.json
+        user_id = session['user_id']
+        
+        # Generate UUID for order ID
+        order_id = str(uuid.uuid4())
+        
+        # Create new order
+        new_order = Order(
+            order_id=order_id,
+            user_id=user_id,
+            total=float(data['totalAmount']),
+            status='Pending'
+        )
+        
+        db.session.add(new_order)
+        db.session.flush()  # Get the order ID
+        
+        # Add order items
+        for item in data['items']:
+            order_item = OrderItem(
+                order_id=new_order.order_id,
+                product_id=int(item['id']),
+                quantity=item['quantity'],
+                price=float(item['price'])
+            )
+            db.session.add(order_item)
+        
+        # Clear the user's cart after creating order
+        CartItem.query.filter_by(user_id=user_id).delete()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Order created successfully',
+            'orderId': new_order.order_id
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating order: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error creating order: {str(e)}'})
+
+@app.route('/api/orders', methods=['GET'])
+def get_user_orders():
+    """Get orders for the authenticated user"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'User not authenticated'})
+    
+    try:
+        user_id = session['user_id']
+        orders = Order.query.filter_by(user_id=user_id).order_by(Order.created_at.desc()).all()
+        order_list = []
+        
+        for order in orders:
+            # Get order items
+            order_items = OrderItem.query.filter_by(order_id=order.order_id).all()
+            items = []
+            
+            for item in order_items:
+                product = db.session.get(Product, item.product_id)  # Using modern SQLAlchemy method
+                if product:
+                    items.append({
+                        'id': str(product.product_id),
+                        'name': product.name,
+                        'price': item.price,
+                        'quantity': item.quantity,
+                        'image': product.image_url,
+                        'video': product.video_url,
+                        'mediaType': product.media_type
+                    })
+            
+            order_list.append({
+                'id': str(order.order_id),
+                'items': items,
+                'totalAmount': order.total,
+                'status': order.status,
+                'createdAt': order.created_at.isoformat()
+            })
+        
+        return jsonify({
+            'success': True,
+            'orders': order_list
+        })
+    
+    except Exception as e:
+        print(f"Error fetching orders: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error fetching orders: {str(e)}'})
+
+# Admin report generation endpoints
+@app.route('/api/admin/reports/users/download', methods=['GET'])
+def download_users_report():
+    """Generate and download users report as CSV"""
+    auth_check = check_admin_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Admin not authenticated'})
+    
+    try:
+        # Create CSV data
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write headers
+        writer.writerow(['User ID', 'Username', 'Email', 'Phone Number', 'Registration Date', 'User Type'])
+        
+        # Write buyers data
+        users = User.query.all()
+        for user in users:
+            writer.writerow([
+                user.user_id,
+                user.username,
+                user.email,
+                user.phone_number or 'N/A',
+                user.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'Buyer'
+            ])
+        
+        # Write sellers data
+        sellers = SellerProfile.query.all()
+        for seller in sellers:
+            writer.writerow([
+                f"S-{seller.seller_id}",
+                seller.username,
+                seller.email,
+                seller.phone_number or 'N/A',
+                seller.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                f'Seller ({seller.approval_status})'
+            ])
+        
+        # Create response
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv'
+        response.headers['Content-Disposition'] = f'attachment; filename=users_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        
+        return response
+    
+    except Exception as e:
+        print(f"Error generating users report: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error generating report: {str(e)}'})
+
+@app.route('/api/admin/reports/products/download', methods=['GET'])
+def download_products_report():
+    """Generate and download products report as CSV"""
+    auth_check = check_admin_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Admin not authenticated'})
+    
+    try:
+        # Create CSV data
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write headers
+        writer.writerow(['Product ID', 'Product Name', 'Category', 'Price (KShs)', 'Stock', 'Seller', 'Created Date'])
+        
+        # Write products data
+        products = Product.query.all()
+        for product in products:
+            seller = SellerProfile.query.get(product.seller_id)
+            seller_name = seller.business_name if seller else 'Unknown Seller'
+            
+            writer.writerow([
+                product.product_id,
+                product.name,
+                product.category,
+                product.price,
+                product.stock,
+                seller_name,
+                product.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            ])
+        
+        # Create response
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv'
+        response.headers['Content-Disposition'] = f'attachment; filename=products_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        
+        return response
+    
+    except Exception as e:
+        print(f"Error generating products report: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error generating report: {str(e)}'})
+
+@app.route('/api/admin/reports/orders/download', methods=['GET'])
+def download_orders_report():
+    """Generate and download orders report as CSV"""
+    auth_check = check_admin_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Admin not authenticated'})
+    
+    try:
+        # Create CSV data
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write headers
+        writer.writerow(['Order ID', 'Customer', 'Customer Email', 'Total Amount (KShs)', 'Status', 'Order Date', 'Items Count'])
+        
+        # Write orders data
+        orders = Order.query.all()
+        for order in orders:
+            user = User.query.get(order.user_id)
+            customer_name = user.username if user else 'Unknown Customer'
+            customer_email = user.email if user else 'Unknown Email'
+            
+            # Count order items
+            items_count = OrderItem.query.filter_by(order_id=order.order_id).count()
+            
+            writer.writerow([
+                order.order_id,
+                customer_name,
+                customer_email,
+                order.total,
+                order.status,
+                order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                items_count
+            ])
+        
+        # Create response
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv'
+        response.headers['Content-Disposition'] = f'attachment; filename=orders_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        
+        return response
+    
+    except Exception as e:
+        print(f"Error generating orders report: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error generating report: {str(e)}'})
+
+@app.route('/api/admin/reports/sellers/download', methods=['GET'])
+def download_sellers_report():
+    """Generate and download sellers report as CSV"""
+    auth_check = check_admin_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Admin not authenticated'})
+    
+    try:
+        # Create CSV data
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write headers
+        writer.writerow(['Seller ID', 'Username', 'Business Name', 'Email', 'Phone', 'Status', 'Products Count', 'Registration Date'])
+        
+        # Write sellers data
+        sellers = SellerProfile.query.all()
+        for seller in sellers:
+            # Count products for this seller
+            products_count = Product.query.filter_by(seller_id=seller.seller_id).count()
+            
+            writer.writerow([
+                seller.seller_id,
+                seller.username,
+                seller.business_name,
+                seller.email,
+                seller.phone_number or 'N/A',
+                seller.approval_status,
+                products_count,
+                seller.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            ])
+        
+        # Create response
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv'
+        response.headers['Content-Disposition'] = f'attachment; filename=sellers_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        
+        return response
+    
+    except Exception as e:
+        print(f"Error generating sellers report: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error generating report: {str(e)}'})
+
+@app.route('/api/admin/reports/sales/download', methods=['GET'])
+def download_sales_report():
+    """Generate and download sales summary report as CSV"""
+    auth_check = check_admin_auth()
+    auth_data = auth_check.get_json()
+    
+    if not auth_data.get('isAuthenticated'):
+        return jsonify({'success': False, 'message': 'Admin not authenticated'})
+    
+    try:
+        # Create CSV data
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write headers
+        writer.writerow(['Order ID', 'Product Name', 'Seller', 'Quantity', 'Unit Price (KShs)', 'Total (KShs)', 'Order Date', 'Status'])
+        
+        # Write sales data (order items with details)
+        order_items = db.session.query(OrderItem, Order, Product, SellerProfile).join(
+            Order, OrderItem.order_id == Order.order_id
+        ).join(
+            Product, OrderItem.product_id == Product.product_id
+        ).join(
+            SellerProfile, Product.seller_id == SellerProfile.seller_id
+        ).all()
+        
+        for order_item, order, product, seller in order_items:
+            total_price = order_item.quantity * order_item.price
+            
+            writer.writerow([
+                order.order_id,
+                product.name,
+                seller.business_name,
+                order_item.quantity,
+                order_item.price,
+                total_price,
+                order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                order.status
+            ])
+        
+        # Create response
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv'
+        response.headers['Content-Disposition'] = f'attachment; filename=sales_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        
+        return response
+    
+    except Exception as e:
+        print(f"Error generating sales report: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error generating report: {str(e)}'})
 
 if __name__ == '__main__':
     with app.app_context():

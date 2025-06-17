@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -27,6 +26,18 @@ const Checkout = () => {
   // Calculate total from cart
   const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 
+  // Check if user is authenticated before proceeding
+  useEffect(() => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Please Login",
+        description: "You need to be logged in to place an order",
+        variant: "destructive",
+      });
+      navigate('/login');
+    }
+  }, [isAuthenticated, navigate, toast]);
+
   const saveOrderToDatabase = async (orderData: any) => {
     try {
       console.log('Saving order to database:', orderData);
@@ -35,9 +46,9 @@ const Checkout = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(orderData)
+        body: JSON.stringify(orderData),
+        credentials: 'include'
       });
 
       const result = await response.json();
@@ -55,12 +66,17 @@ const Checkout = () => {
   };
 
   const createOrder = async () => {
+    // Validate user is authenticated and has valid userId
+    if (!isAuthenticated || !userId) {
+      throw new Error('User not authenticated');
+    }
+
     const orderId = uuidv4();
     
-    // Create order data for database
+    // Create order data for database - ensure userId is a number
     const orderData = {
       order_id: orderId,
-      user_id: parseInt(String(userId || '0')),
+      user_id: Number(userId), // Ensure it's a number
       total: cartTotal,
       status: 'Pending',
       items: cart.map(item => ({
@@ -69,6 +85,8 @@ const Checkout = () => {
         price: item.price
       }))
     };
+
+    console.log('Creating order with data:', orderData);
 
     try {
       // Save to database first
@@ -88,7 +106,7 @@ const Checkout = () => {
         status: "Pending",
         date: new Date().toISOString(),
         total: cartTotal,
-        userId: userId || undefined
+        userId: Number(userId)
       };
 
       // Add to orders context
@@ -210,6 +228,16 @@ const Checkout = () => {
         >
           Continue Shopping
         </Button>
+      </div>
+    );
+  }
+
+  // Show loading if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="container mx-auto max-w-2xl py-16 text-center">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin" />
+        <p className="mt-4">Checking authentication...</p>
       </div>
     );
   }

@@ -60,7 +60,7 @@ const Checkout = () => {
     // Create order data for database
     const orderData = {
       order_id: orderId,
-      user_id: parseInt(userId || '0'),
+      user_id: parseInt(String(userId || '0')),
       total: cartTotal,
       status: 'Pending',
       items: cart.map(item => ({
